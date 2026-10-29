@@ -1,4 +1,9 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="বাংলাদেশ রেলওয়ের সময়সূচি থেকে হিসাব করে যেকোনো সময়ে ট্রেন কোথায় থাকার কথা তা দেখুন।">
 <title>ট্রেন কই?</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@500;700&family=Hind+Siliguri:wght@400;500;600&display=swap">
@@ -175,9 +180,12 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,7vw,52px);lin
 .note{color:var(--muted);font-size:14px;margin:0}
 .warn{border-left:3px solid var(--amber);background:var(--amber-soft);padding:8px 12px;font-size:14px;margin:0}
 .empty{border:1px dashed var(--rule);padding:14px;color:var(--muted);font-size:15px}
+.made{margin-top:6px;font-weight:500;color:var(--ink)}
 footer{color:var(--muted);font-size:14px;border-top:1px solid var(--rule);padding-top:12px;display:flex;flex-direction:column;gap:4px}
 </style>
 
+</head>
+<body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
 <g id="trn"><g class="tb"><rect x="0" y="7" width="52" height="23" rx="1.5"/></g><g class="tk"><rect x="6" y="11" width="8" height="8" rx="1"/><rect x="18" y="11" width="8" height="8" rx="1"/><rect x="30" y="11" width="8" height="8" rx="1"/><rect x="42" y="11" width="8" height="8" rx="1"/></g><g class="ts"><rect x="0" y="23" width="52" height="3"/></g><g class="tx"><rect x="52" y="18" width="4" height="3"/><circle cx="10" cy="32" r="4"/><circle cx="42" cy="32" r="4"/></g><g class="tb"><rect x="56" y="7" width="52" height="23" rx="1.5"/></g><g class="tk"><rect x="62" y="11" width="8" height="8" rx="1"/><rect x="74" y="11" width="8" height="8" rx="1"/><rect x="86" y="11" width="8" height="8" rx="1"/><rect x="98" y="11" width="8" height="8" rx="1"/></g><g class="ts"><rect x="56" y="23" width="52" height="3"/></g><g class="tx"><rect x="108" y="18" width="4" height="3"/><circle cx="66" cy="32" r="4"/><circle cx="98" cy="32" r="4"/></g><g class="tb"><rect x="112" y="7" width="52" height="23" rx="1.5"/></g><g class="tk"><rect x="118" y="11" width="8" height="8" rx="1"/><rect x="130" y="11" width="8" height="8" rx="1"/><rect x="142" y="11" width="8" height="8" rx="1"/><rect x="154" y="11" width="8" height="8" rx="1"/></g><g class="ts"><rect x="112" y="23" width="52" height="3"/></g><g class="tx"><rect x="164" y="18" width="4" height="3"/><circle cx="122" cy="32" r="4"/><circle cx="154" cy="32" r="4"/></g><g transform="translate(168)">
   <g class="tb"><rect x="0" y="7" width="52" height="23" rx="1.5"/><rect x="56" y="7" width="52" height="23" rx="1.5"/>
@@ -233,6 +241,7 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--rule);paddin
   <footer>
     <span><b>হিসাব যেভাবে হয়।</b> বাংলাদেশ রেলওয়ে ট্রেনের সরাসরি অবস্থান প্রকাশ করে না, তাই এখানকার প্রতিটি অবস্থান সময়সূচি থেকে করা আনুমানিক হিসাব। ধরে নেওয়া হয়েছে ট্রেন প্রথম ও শেষ স্টেশনের মাঝে একই গতিতে চলে। বাস্তবে ট্রেন থামে, ধীর হয় এবং দেরিতেও চলে, তাই এটিকে একটি আন্দাজ হিসেবে দেখুন।</span>
     <span id="srcnote"></span>
+    <span class="made">Made by krp2n8 with 💛</span>
   </footer>
 </div>
 
@@ -553,5 +562,5 @@ setInterval(function(){
 },200);
 })();
 </script>
-
-</body></html>
+</body>
+</html>
