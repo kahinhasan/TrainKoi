@@ -1,0 +1,557 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>ট্রেন কই?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@500;700&family=Hind+Siliguri:wght@400;500;600&display=swap">
+<style>
+/* Layout: finder and train list on the left; on the right the selected train on a side-view rail strip (earlier stop, train, next stop) above a full-route line. A time bar on top drives everything. */
+:root{
+  --bg:#edf0ea; --panel:#f8faf6; --ink:#12241c; --muted:#5b6b62; --rule:#cfd8cd;
+  --rail:#0b5a3c; --rail-soft:#d6e8dd; --signal:#c8321f; --signal-soft:#f6dcd8; --amber:#8f5f00; --amber-soft:#f5e8c6;
+  --track:#b3c0b6; --sky:#e3ece4;
+  --display:"Anek Bangla","Hind Siliguri",system-ui,sans-serif; --body:"Hind Siliguri",system-ui,sans-serif; --mono:"Hind Siliguri",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1612; --panel:#142019; --ink:#e6efe8; --muted:#92a69a; --rule:#27382e; --track:#3a4e41; --sky:#102019;
+  --rail:#4fc08a; --rail-soft:#17382a; --signal:#ff7a69; --signal-soft:#3b1f1b; --amber:#e8b84a; --amber-soft:#3a2f12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1612; --panel:#142019; --ink:#e6efe8; --muted:#92a69a; --rule:#27382e; --track:#3a4e41; --sky:#102019;
+  --rail:#4fc08a; --rail-soft:#17382a; --signal:#ff7a69; --signal-soft:#3b1f1b; --amber:#e8b84a; --amber-soft:#3a2f12; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--rail);outline-offset:2px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;border-bottom:2px solid var(--ink);padding-bottom:12px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,7vw,52px);line-height:1.1;margin:0}
+.tag{margin:6px 0 0;color:var(--muted);max-width:56ch}
+.clock{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.clock b{font-family:var(--display);font-weight:500;font-size:28px;line-height:1.2;font-variant-numeric:tabular-nums}
+.clock small{color:var(--muted);font-size:13px}
+
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:var(--panel);border:1px solid var(--rule);padding:10px 14px}
+.bar label{font-size:14px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--ink)}
+.seg button{background:none;border:0;padding:5px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+#scrub{flex:1 1 220px;min-width:0;accent-color:var(--rail)}
+#scrubT{min-width:7.5em;text-align:right;font-variant-numeric:tabular-nums}
+.bar select{border:1px solid var(--rule);background:var(--bg);padding:4px 6px}
+.btn{border:1px solid var(--ink);background:var(--ink);color:var(--bg);padding:5px 14px;cursor:pointer;font-weight:500}
+
+.grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.find{background:var(--panel);border:1px solid var(--rule);padding:12px;display:flex;flex-direction:column;gap:8px}
+.ft{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:end}
+.ft label{display:flex;flex-direction:column;font-size:14px;color:var(--muted);min-width:0}
+.ft select{border:1px solid var(--rule);background:var(--bg);padding:7px 6px;font-size:16px;color:var(--ink);min-width:0;width:100%}
+#swap{border:1px solid var(--ink);background:none;width:38px;height:38px;cursor:pointer;font-size:17px}
+#q{width:100%;padding:9px 12px;border:1px solid var(--rule);background:var(--panel);border-radius:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chips button{border:1px solid var(--rule);background:none;padding:1px 12px;cursor:pointer;font-size:14px;border-radius:99px}
+.chips button[aria-pressed="true"]{background:var(--rail);border-color:var(--rail);color:var(--panel)}
+.chk{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:6px}
+#trains{display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;padding-right:2px}
+@media(max-width:860px){#trains{max-height:60vh}}
+.train{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:3.4em minmax(0,1fr) auto;gap:0 10px;padding:8px 12px;background:var(--panel);border:1px solid var(--rule);width:100%}
+.train:hover{border-color:var(--ink)}
+.train[aria-current="true"]{border-color:var(--rail);box-shadow:inset 3px 0 0 var(--rail)}
+.train:focus-visible{outline:2px solid var(--rail)}
+.no{color:var(--muted);font-size:14px;align-self:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nm{font-family:var(--display);font-weight:700;font-size:17px;line-height:1.3;min-width:0;align-self:center}
+.rt{grid-column:2/-1;color:var(--muted);font-size:14px;line-height:1.4}
+.pill{grid-row:1;grid-column:3;font-size:13px;padding:0 10px;border-radius:99px;white-space:nowrap;align-self:center}
+.p-run{background:var(--rail);color:var(--panel)}
+.p-wait{background:var(--amber-soft);color:var(--amber)}
+.p-none{background:var(--rule);color:var(--muted)}
+.p-off{background:var(--signal-soft);color:var(--signal)}
+
+.detail{background:var(--panel);border:1px solid var(--rule);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.detail h2{font-family:var(--display);font-size:28px;line-height:1.2;margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.detail h2 small{font-family:var(--body);font-weight:400;font-size:15px;color:var(--muted)}
+.dir{color:var(--muted);margin:-8px 0 0}
+.now{font-size:18px;margin:0}
+.now b{color:var(--rail)}
+.st-badge{display:inline-block;font-size:13px;padding:0 9px;border-radius:2px;margin-right:8px}
+.st-badge.run{background:var(--rail);color:var(--panel)}
+.st-badge.wait{background:var(--amber-soft);color:var(--amber)}
+.st-badge.off{background:var(--signal-soft);color:var(--signal)}
+.st-badge.done{background:var(--rule);color:var(--muted)}
+
+.focus{border:1px solid var(--rule);background:var(--sky);padding:12px 14px 0;overflow:hidden}
+.ends{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ends>div{min-width:0}
+.ends .r{text-align:right}
+.ends small{display:block;font-size:13px;color:var(--muted)}
+.ends b{display:block;font-family:var(--display);font-size:21px;line-height:1.3}
+.ends span{display:block;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rail{position:relative;height:190px;margin:6px -14px 0;isolation:isolate;overflow:hidden}
+.ties{position:absolute;left:0;right:0;bottom:34px;z-index:4;height:9px;background:repeating-linear-gradient(90deg,var(--track) 0 7px,transparent 7px 20px)}
+.steel{position:absolute;z-index:4;left:0;right:0;bottom:42px;height:3px;background:var(--muted)}
+.post{position:absolute;z-index:4;bottom:34px;width:0;height:46px;border-left:2px solid var(--ink)}
+.post::before{content:"";position:absolute;left:-7px;top:-6px;width:12px;height:12px;border-radius:50%;background:var(--panel);border:3px solid var(--ink)}
+.post.l{left:20%}.post.rr{left:80%}
+.plat{position:absolute;z-index:4;bottom:34px;height:8px;background:var(--rule);border-top:2px solid var(--ink)}
+.plat.l{left:calc(20% - 34px);width:68px}.plat.rr{left:calc(80% - 34px);width:68px}
+.tw{position:absolute;z-index:5;bottom:45px;left:20%;width:var(--tw,230px);transform:translateX(-50%);transition:left .35s linear}
+.tw svg{display:block;width:100%;height:auto;overflow:visible}
+.rail.off .tw{opacity:.45}
+.rail.moving .ties{animation:roll var(--rd,.9s) linear infinite}
+.rail.moving .tw svg{animation:bob .5s ease-in-out infinite}
+@keyframes roll{to{background-position-x:-20px}}
+@keyframes bob{50%{transform:translateY(-1px)}}
+@media(max-width:560px){.tw{--tw:140px}.ends b{font-size:17px}}
+@media(prefers-reduced-motion:reduce){.rail.moving .ties,.rail.moving .tw svg{animation:none}.tw{transition:none}}
+.smk circle{fill:var(--muted);opacity:0;transform-box:fill-box;transform-origin:center;animation:puff 1.6s ease-out infinite}
+.smk circle:nth-child(2){animation-delay:.53s}.smk circle:nth-child(3){animation-delay:1.06s}
+.rail:not(.moving) .smk circle{animation-duration:3.2s}.rail.off .smk{display:none}
+@keyframes puff{0%{opacity:.75;transform:translate(0,0) scale(.5)}100%{opacity:0;transform:translate(-30px,-28px) scale(2.4)}}
+@media(prefers-reduced-motion:reduce){.smk{display:none}}
+.tb{fill:var(--rail)}.tk{fill:var(--rail-soft)}.ts{fill:var(--signal)}.tx{fill:var(--ink)}.tl{fill:var(--amber-soft);stroke:var(--amber);stroke-width:1}
+
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:12px 0}
+.facts div{display:flex;flex-direction:column;min-width:0}
+.facts small{font-size:13px;color:var(--muted)}
+.facts strong{font-family:var(--display);font-weight:500;font-size:21px;line-height:1.3;font-variant-numeric:tabular-nums}
+.facts em{font-style:normal;font-size:13px;color:var(--muted)}
+.facts select{border:1px solid var(--rule);background:var(--bg);padding:3px 6px;max-width:100%}
+
+.delay{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.delay div:first-child{display:flex;flex-direction:column;min-width:9em}
+.delay small{font-size:13px;color:var(--muted)}
+.delay strong{font-family:var(--display);font-weight:500;font-size:19px}
+.dctl{display:flex;flex-wrap:wrap;gap:6px}
+.dctl button{border:1px solid var(--ink);background:none;padding:2px 12px;cursor:pointer}
+.dctl button:hover{background:var(--ink);color:var(--bg)}
+.delay em{flex-basis:100%;font-style:normal;font-size:13px;color:var(--muted)}
+
+:root{--hill1:#b7d2bb;--hill2:#8ebd99;--grass:#7fb88a;--tree:#2f7d4f;--tree2:#3f9a62;--water:#6fb2d4;--water2:#9ccfe6;--sun:#f2c14e;--cloud:#fff;--bank:#9a8f78}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hill1:#183628;--hill2:#1f4a35;--grass:#25573f;--tree:#34805a;--tree2:#2a6b49;--water:#1b4860;--water2:#276887;--sun:#d9d5b8;--cloud:#2c4237;--bank:#4a4636}}
+:root[data-theme="dark"]{--hill1:#183628;--hill2:#1f4a35;--grass:#25573f;--tree:#34805a;--tree2:#2a6b49;--water:#1b4860;--water2:#276887;--sun:#d9d5b8;--cloud:#2c4237;--bank:#4a4636}
+.sc{position:absolute;left:0;pointer-events:none}
+.lay{position:absolute;left:0;width:200%;animation:scr linear infinite;animation-play-state:paused}
+.lay svg,.wv svg{display:block;width:100%;height:100%}
+.rail.moving .lay{animation-play-state:running}
+@keyframes scr{to{transform:translateX(-50%)}}
+.lh1{bottom:96px;height:60px;z-index:1;animation-duration:calc(var(--rd,1s)*160)}
+.lh2{bottom:62px;height:70px;z-index:1;animation-duration:calc(var(--rd,1s)*90)}
+.ltr{bottom:36px;height:46px;z-index:2;animation-duration:calc(var(--rd,1s)*45)}
+.lbr{bottom:0;height:116px;z-index:2;animation-duration:calc(var(--rd,1s)*30)}
+.gr{left:0;right:0;bottom:36px;height:26px;background:var(--grass);z-index:1}
+.bank{left:0;right:0;bottom:26px;height:12px;background:var(--bank);z-index:3}
+.wv{position:absolute;left:0;width:200%;animation:scr linear infinite}
+.sea{bottom:92px;height:22px;z-index:0;background:var(--water)}
+.sea .wv{bottom:0;height:22px;animation-duration:22s}
+.river{left:0;right:0;bottom:0;height:28px;background:var(--water);z-index:3;overflow:hidden}
+.river .w1{bottom:0;height:28px;animation-duration:9s}
+.river .w2{bottom:0;height:20px;opacity:.55;animation-duration:15s;animation-direction:reverse}
+.sun{right:12%;top:10px;width:24px;height:24px;border-radius:50%;background:var(--sun);z-index:0}
+.cloud{top:18px;left:-80px;width:64px;height:16px;border-radius:99px;background:var(--cloud);opacity:.8;z-index:0;animation:drift 70s linear infinite}
+.cloud::before{content:"";position:absolute;left:12px;top:-9px;width:26px;height:18px;border-radius:50%;background:inherit}
+.cloud.c2{top:46px;transform:scale(.7);animation-duration:95s;animation-delay:-40s}
+@keyframes drift{to{left:105%}}
+.bird{position:absolute;z-index:1;width:18px;left:-30px;animation:fly 15s linear infinite}
+.bird svg{display:block;width:100%;animation:flap .45s ease-in-out infinite alternate;transform-origin:50% 100%}
+.bird path{fill:none;stroke:var(--ink);stroke-width:1.5;stroke-linecap:round}
+@keyframes fly{to{left:105%}}
+@keyframes flap{from{transform:scaleY(1)}to{transform:scaleY(.35)}}
+@media(prefers-reduced-motion:reduce){.lay,.wv,.cloud,.bird,.bird svg{animation:none}}
+.gob{align-self:flex-start;padding:2px 12px;font-size:14px}
+.rwrap{overflow-x:auto;border:1px solid var(--rule);background:var(--bg)}
+.rt2{position:relative;height:122px}
+.seg2{position:absolute;top:34px;height:6px;background:var(--rule)}
+.seg2 b{display:block;height:100%;width:0;background:var(--rail)}
+.stp{position:absolute;top:0;width:100px;height:122px;text-align:center}
+.stp i{position:absolute;left:50%;top:30px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--panel);border:3px solid var(--track)}
+.stp.passed i{border-color:var(--rail);background:var(--rail)}
+.stp.sel i{outline:2px solid var(--signal);outline-offset:2px}
+.stp span{position:absolute;left:4px;right:4px;top:52px;font-size:13.5px;line-height:1.25;font-weight:500}
+.stp.sel span{color:var(--signal)}
+.stp time{position:absolute;left:0;right:0;top:92px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.stp u{position:absolute;left:0;right:0;top:108px;font-size:12px;color:var(--muted);text-decoration:none}
+.mk{position:absolute;top:2px;left:50px;width:96px;transform:translateX(-50%);transition:left .35s linear;pointer-events:none}
+.mk svg{display:block;width:100%;height:auto;overflow:visible}
+.note{color:var(--muted);font-size:14px;margin:0}
+.warn{border-left:3px solid var(--amber);background:var(--amber-soft);padding:8px 12px;font-size:14px;margin:0}
+.empty{border:1px dashed var(--rule);padding:14px;color:var(--muted);font-size:15px}
+footer{color:var(--muted);font-size:14px;border-top:1px solid var(--rule);padding-top:12px;display:flex;flex-direction:column;gap:4px}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<g id="trn"><g class="tb"><rect x="0" y="7" width="52" height="23" rx="1.5"/></g><g class="tk"><rect x="6" y="11" width="8" height="8" rx="1"/><rect x="18" y="11" width="8" height="8" rx="1"/><rect x="30" y="11" width="8" height="8" rx="1"/><rect x="42" y="11" width="8" height="8" rx="1"/></g><g class="ts"><rect x="0" y="23" width="52" height="3"/></g><g class="tx"><rect x="52" y="18" width="4" height="3"/><circle cx="10" cy="32" r="4"/><circle cx="42" cy="32" r="4"/></g><g class="tb"><rect x="56" y="7" width="52" height="23" rx="1.5"/></g><g class="tk"><rect x="62" y="11" width="8" height="8" rx="1"/><rect x="74" y="11" width="8" height="8" rx="1"/><rect x="86" y="11" width="8" height="8" rx="1"/><rect x="98" y="11" width="8" height="8" rx="1"/></g><g class="ts"><rect x="56" y="23" width="52" height="3"/></g><g class="tx"><rect x="108" y="18" width="4" height="3"/><circle cx="66" cy="32" r="4"/><circle cx="98" cy="32" r="4"/></g><g class="tb"><rect x="112" y="7" width="52" height="23" rx="1.5"/></g><g class="tk"><rect x="118" y="11" width="8" height="8" rx="1"/><rect x="130" y="11" width="8" height="8" rx="1"/><rect x="142" y="11" width="8" height="8" rx="1"/><rect x="154" y="11" width="8" height="8" rx="1"/></g><g class="ts"><rect x="112" y="23" width="52" height="3"/></g><g class="tx"><rect x="164" y="18" width="4" height="3"/><circle cx="122" cy="32" r="4"/><circle cx="154" cy="32" r="4"/></g><g transform="translate(168)">
+  <g class="tb"><rect x="0" y="7" width="52" height="23" rx="1.5"/><rect x="56" y="7" width="52" height="23" rx="1.5"/>
+  <rect x="112" y="7" width="24" height="23" rx="1"/><rect x="136" y="14" width="44" height="16" rx="1"/><rect x="146" y="9" width="9" height="6" rx="3"/><rect x="164" y="6" width="7" height="9"/><rect x="179" y="16" width="4" height="14"/></g>
+  <g class="tk"><rect x="6" y="11" width="8" height="8" rx="1"/><rect x="18" y="11" width="8" height="8" rx="1"/><rect x="30" y="11" width="8" height="8" rx="1"/><rect x="42" y="11" width="7" height="8" rx="1"/>
+  <rect x="62" y="11" width="8" height="8" rx="1"/><rect x="74" y="11" width="8" height="8" rx="1"/><rect x="86" y="11" width="8" height="8" rx="1"/><rect x="98" y="11" width="7" height="8" rx="1"/>
+  <rect x="119" y="11" width="11" height="9" rx="1"/></g>
+  <g class="ts"><rect x="0" y="23" width="52" height="3"/><rect x="56" y="23" width="52" height="3"/><rect x="112" y="23" width="71" height="3"/></g>
+  <g class="tx"><rect x="52" y="18" width="4" height="3"/><rect x="108" y="18" width="4" height="3"/><rect x="109" y="3" width="30" height="4"/><rect x="162" y="3" width="11" height="3"/><circle cx="10" cy="32" r="4"/><circle cx="42" cy="32" r="4"/><circle cx="66" cy="32" r="4"/><circle cx="98" cy="32" r="4"/><circle cx="124" cy="32" r="5"/><circle cx="146" cy="32" r="5"/><circle cx="168" cy="32" r="5"/></g>
+  <circle class="tl" cx="183" cy="21" r="2.4"/></g>
+</g></defs></svg>
+
+<div class="wrap" lang="bn">
+  <header>
+    <div>
+      <h1>ট্রেন কই?</h1>
+      <p class="tag">বাংলাদেশ রেলওয়ের সময়সূচি ধরে হিসাব করে দেখুন, যেকোনো সময়ে কোন ট্রেন কোথায় থাকার কথা।</p>
+    </div>
+    <div class="clock"><b id="clock">--</b><small id="date">ঢাকার সময়</small></div>
+  </header>
+
+  <div class="bar">
+    <label>সময়</label>
+    <div class="seg" role="group" aria-label="সময়ের ধরন">
+      <button id="mLive" aria-pressed="true">এখন</button>
+      <button id="mSet" aria-pressed="false">সময় বাছাই</button>
+    </div>
+    <select id="day" aria-label="বার"></select>
+    <input id="scrub" type="range" min="0" max="1439" step="1" value="720" aria-label="দিনের সময়">
+    <span id="scrubT">--</span>
+    <button class="btn" id="play" aria-pressed="false">চালান</button>
+  </div>
+
+  <div class="grid">
+    <section class="col" aria-label="ট্রেনের তালিকা">
+      <div class="find">
+        <div class="ft">
+          <label>কোথা থেকে<select id="from"></select></label>
+          <button id="swap" aria-label="কোথা থেকে আর কোথায় অদলবদল করুন" title="অদলবদল">⇄</button>
+          <label>কোথায়<select id="to"></select></label>
+        </div>
+        <input id="q" type="search" placeholder="ট্রেনের নাম বা নম্বর খুঁজুন" aria-label="ট্রেন খুঁজুন">
+        <div class="chips pop" id="pop" aria-label="জনপ্রিয় রুট"></div>
+        <div class="chips" id="chips"></div>
+        <label class="chk"><input type="checkbox" id="showSusp"> বন্ধ থাকা ট্রেনও দেখান</label>
+        <p class="note" id="count"></p>
+      </div>
+      <div id="trains"></div>
+    </section>
+    <section class="detail" id="detail"></section>
+  </div>
+
+  <footer>
+    <span><b>হিসাব যেভাবে হয়।</b> বাংলাদেশ রেলওয়ে ট্রেনের সরাসরি অবস্থান প্রকাশ করে না, তাই এখানকার প্রতিটি অবস্থান সময়সূচি থেকে করা আনুমানিক হিসাব। ধরে নেওয়া হয়েছে ট্রেন প্রথম ও শেষ স্টেশনের মাঝে একই গতিতে চলে। বাস্তবে ট্রেন থামে, ধীর হয় এবং দেরিতেও চলে, তাই এটিকে একটি আন্দাজ হিসেবে দেখুন।</span>
+    <span id="srcnote"></span>
+  </footer>
+</div>
+
+<script>
+(function(){
+/* Rail network edges: [station, station, approximate km]. */
+var E=[
+["Dhaka","Dhaka Airport",14],["Dhaka Cantonment","Dhaka Airport",4],["Dhaka Airport","Tongi",8],["Tongi","Joydebpur",14],["Dhaka","Narayanganj",22],
+["Tongi","Narsingdi",38],["Narsingdi","Bhairab Bazar",32],["Bhairab Bazar","Brahmanbaria",38],["Brahmanbaria","Akhaura",30],["Akhaura","Cumilla",50],["Cumilla","Laksam",15],["Laksam","Feni",37],["Feni","Chattogram",81],
+["Chattogram","Dohazari",40],["Dohazari","Chakaria",45],["Chakaria","Eidgaon",25],["Eidgaon","Ramu",15],["Ramu","Cox's Bazar",15],
+["Laksam","Chaumuhani",40],["Chaumuhani","Noakhali",25],["Laksam","Hajiganj",35],["Hajiganj","Chandpur",25],
+["Akhaura","Shaistaganj",60],["Shaistaganj","Srimangal",35],["Srimangal","Kulaura",25],["Kulaura","Sylhet",50],
+["Joydebpur","Mymensingh",84],["Bhairab Bazar","Kishoreganj",32],["Kishoreganj","Gafargaon",45],["Gafargaon","Mymensingh",38],
+["Mymensingh","Netrokona",72],["Netrokona","Mohanganj",35],["Netrokona","Jaria Jhanjail",40],["Mymensingh","Jamalpur",60],["Jamalpur","Dewanganj Bazar",28],["Dewanganj Bazar","Tarakandi",22],["Jamalpur","Bhuapur",40],
+["Joydebpur","Tangail",64],["Tangail","Ibrahimabad",25],["Ibrahimabad","Jamuna Bridge East",5],["Jamuna Bridge East","Jamuna Bridge West",5],["Jamuna Bridge West","Sirajganj Bazar",15],["Jamuna Bridge West","Ullapara",25],["Jamuna Bridge West","Bonarpara",70],
+["Ullapara","Ishwardi",60],["Bonarpara","Bogura",45],["Bogura","Santahar",25],["Bonarpara","Gaibandha",50],["Gaibandha","Parbatipur",60],["Gaibandha","Kaunia",45],["Parbatipur","Rangpur",45],["Rangpur","Kaunia",15],["Rangpur","Romnabazar",10],
+["Kaunia","Lalmonirhat",22],["Lalmonirhat","Burimari",60],["Kaunia","Kurigram",47],["Parbatipur","Dinajpur",40],["Dinajpur","Thakurgaon Road",40],["Thakurgaon Road","Panchagarh",40],["Parbatipur","Haldibari",55],["Haldibari","Chilahati",18],["Parbatipur","Birol",45],
+["Santahar","Joypurhat",60],["Joypurhat","Parbatipur",80],
+["Ishwardi","Natore",40],["Natore","Abdulpur",30],["Abdulpur","Rajshahi",25],["Santahar","Abdulpur",55],["Abdulpur","Rohanpur",60],["Rohanpur","Chapainawabganj",25],["Ishwardi","Dhalarchar",40],["Ishwardi","Pabna",25],
+["Ishwardi","Poradah",15],["Poradah","Jashore",70],["Jashore","Khulna",70],["Jashore","Benapole",36],["Khulna","Mongla",40],["Poradah","Darshana",50],["Poradah","Rajbari",95],
+["Dhaka","Mawa",54],["Mawa","Bhanga",33],["Bhanga","Jashore",85],["Bhanga","Rajbari",70],["Bhanga","Gopalganj",45],["Gopalganj","Gobra",20],["Rajbari","Goalundo Ghat",30],["Bhanga","Kamarkhali",50],["Kamarkhali","Bhatiapara Ghat",45],
+["Darshana","Kolkata",190],["Benapole","Kolkata",75],["Haldibari","New Jalpaiguri",65]
+];
+var SB={"Dhaka":"ঢাকা","Dhaka Airport":"ঢাকা বিমানবন্দর","Dhaka Cantonment":"ঢাকা ক্যান্টনমেন্ট","Tongi":"টঙ্গী","Joydebpur":"জয়দেবপুর","Narayanganj":"নারায়ণগঞ্জ","Narsingdi":"নরসিংদী","Bhairab Bazar":"ভৈরব বাজার","Brahmanbaria":"ব্রাহ্মণবাড়িয়া","Akhaura":"আখাউড়া","Cumilla":"কুমিল্লা","Laksam":"লাকসাম","Feni":"ফেনী","Chattogram":"চট্টগ্রাম","Dohazari":"দোহাজারী","Chakaria":"চকরিয়া","Eidgaon":"ঈদগাঁও","Ramu":"রামু","Cox's Bazar":"কক্সবাজার","Chaumuhani":"চৌমুহনী","Noakhali":"নোয়াখালী","Hajiganj":"হাজীগঞ্জ","Chandpur":"চাঁদপুর","Shaistaganj":"শায়েস্তাগঞ্জ","Srimangal":"শ্রীমঙ্গল","Kulaura":"কুলাউড়া","Sylhet":"সিলেট","Mymensingh":"ময়মনসিংহ","Gafargaon":"গফরগাঁও","Kishoreganj":"কিশোরগঞ্জ","Netrokona":"নেত্রকোনা","Mohanganj":"মোহনগঞ্জ","Jaria Jhanjail":"ঝারিয়া ঝাঞ্জাইল","Jamalpur":"জামালপুর","Dewanganj Bazar":"দেওয়ানগঞ্জ বাজার","Tarakandi":"তারাকান্দি","Bhuapur":"ভুঞাপুর","Ibrahimabad":"ইব্রাহিমাবাদ","Tangail":"টাঙ্গাইল","Jamuna Bridge East":"যমুনা সেতু পূর্ব","Jamuna Bridge West":"যমুনা সেতু পশ্চিম","Sirajganj Bazar":"সিরাজগঞ্জ বাজার","Ullapara":"উল্লাপাড়া","Bonarpara":"বোনারপাড়া","Bogura":"বগুড়া","Santahar":"সান্তাহার","Gaibandha":"গাইবান্ধা","Parbatipur":"পার্বতীপুর","Rangpur":"রংপুর","Romnabazar":"রমনা বাজার","Kaunia":"কাউনিয়া","Lalmonirhat":"লালমনিরহাট","Burimari":"বুড়িমারী","Kurigram":"কুড়িগ্রাম","Panchagarh":"পঞ্চগড়","Birol":"বিরল","Haldibari":"হলদিবাড়ী","Chilahati":"চিলাহাটি","Dinajpur":"দিনাজপুর","Thakurgaon Road":"ঠাকুরগাঁও রোড","Joypurhat":"জয়পুরহাট","Ishwardi":"ঈশ্বরদী","Natore":"নাটোর","Abdulpur":"আব্দুলপুর","Rajshahi":"রাজশাহী","Rohanpur":"রোহনপুর","Chapainawabganj":"চাঁপাইনবাবগঞ্জ","Dhalarchar":"ঢালারচর","Pabna":"পাবনা","Poradah":"পোড়াদহ","Jashore":"যশোর","Khulna":"খুলনা","Mongla":"মংলা","Benapole":"বেনাপোল","Darshana":"দর্শনা","Mawa":"মাওয়া","Bhanga":"ভাঙ্গা","Rajbari":"রাজবাড়ী","Gopalganj":"গোপালগঞ্জ","Gobra":"গোবরা","Goalundo Ghat":"গোয়ালন্দ ঘাট","Kamarkhali":"কামারখালী","Bhatiapara Ghat":"ভাটিয়াপাড়া ঘাট","Kolkata":"কলকাতা","New Jalpaiguri":"নিউ জলপাইগুড়ি"};
+function sn(n){return SB[n]||n}
+var ADJ={};E.forEach(function(e){(ADJ[e[0]]=ADJ[e[0]]||[]).push([e[1],e[2]]);(ADJ[e[1]]=ADJ[e[1]]||[]).push([e[0],e[2]])});
+var PC={};
+function path(a,b){
+  var k=a+">"+b;if(PC[k]!==undefined)return PC[k];
+  var dist={},prev={},done={};dist[a]=0;
+  while(true){
+    var u=null,best=1e9;for(var n in dist){if(!done[n]&&dist[n]<best){best=dist[n];u=n}}
+    if(u===null||u===b)break;done[u]=1;
+    (ADJ[u]||[]).forEach(function(x){var d=dist[u]+x[1];if(dist[x[0]]===undefined||d<dist[x[0]]){dist[x[0]]=d;prev[x[0]]=u}});
+  }
+  if(dist[b]===undefined)return PC[k]=null;
+  var names=[],c=b;while(c!==undefined){names.unshift(c);c=prev[c]}
+  var km=0,stops=names.map(function(n,i){if(i>0){var p=names[i-1];ADJ[p].forEach(function(x){if(x[0]===n)km+=x[1]})}return{name:n,km:km}});
+  return PC[k]={stops:stops,tot:km};
+}
+function routeOf(from,to,via){
+  if(!via)return path(from,to);
+  var p1=path(from,via),p2=path(via,to);if(!p1||!p2)return null;
+  return{stops:p1.stops.concat(p2.stops.slice(1).map(function(s){return{name:s.name,km:s.km+p1.tot}})),tot:p1.tot+p2.tot};
+}
+
+/* Timetable data: [number, name, from, to, departs, arrives, weekly off day / run days, flag] */
+var DATA=[["701","সুবর্ণ এক্সপ্রেস","Chattogram","Dhaka","0700","1155","1",""],["702","সুবর্ণ এক্সপ্রেস","Dhaka","Chattogram","1630","2125","1",""],["703","মহানগর গোধূলী","Chattogram","Dhaka","1500","2045","-",""],["704","মহানগর প্রভাতী","Dhaka","Chattogram","0745","1335","-",""],["707","তিস্তা এক্সপ্রেস","Dhaka","Dewanganj Bazar","0730","1250","1",""],["708","তিস্তা এক্সপ্রেস","Dewanganj Bazar","Dhaka","1500","2030","1",""],["709","পারাবত এক্সপ্রেস","Dhaka","Sylhet","0630","1300","1",""],["710","পারাবত এক্সপ্রেস","Sylhet","Dhaka","1600","2240","1",""],["711","উপকূল এক্সপ্রেস","Noakhali","Dhaka","0600","1120","3",""],["712","উপকূল এক্সপ্রেস","Dhaka","Noakhali","1510","2040","2",""],["717","জয়ন্তীকা এক্সপ্রেস","Dhaka","Sylhet","1115","1900","2",""],["718","জয়ন্তীকা এক্সপ্রেস","Sylhet","Dhaka","1200","1915","4",""],["719","পাহাড়িকা এক্সপ্রেস","Chattogram","Sylhet","0750","1555","1",""],["720","পাহাড়িকা এক্সপ্রেস","Sylhet","Chattogram","1030","1855","3",""],["721","মহানগর এক্সপ্রেস","Chattogram","Dhaka","1230","1840","0",""],["722","মহানগর এক্সপ্রেস","Dhaka","Chattogram","2120","0330","0",""],["723","উদয়ন এক্সপ্রেস","Chattogram","Sylhet","2145","0545","3",""],["724","উদয়ন এক্সপ্রেস","Sylhet","Chattogram","2200","0535","0",""],["729","মেঘনা এক্সপ্রেস","Chattogram","Chandpur","1715","2125","-",""],["730","মেঘনা এক্সপ্রেস","Chandpur","Chattogram","0500","0900","-",""],["735","অগ্নিবীণা এক্সপ্রেস","Dhaka","Tarakandi","1130","1700","-",""],["736","অগ্নিবীণা এক্সপ্রেস","Tarakandi","Dhaka","1730","2255","-",""],["737","এগারসিন্দুর প্রভাতী","Dhaka","Kishoreganj","0715","1110","3",""],["738","এগারসিন্দুর প্রভাতী","Kishoreganj","Dhaka","0630","1035","-",""],["739","উপবন এক্সপ্রেস","Dhaka","Sylhet","2200","0500","3",""],["740","উপবন এক্সপ্রেস","Sylhet","Dhaka","2330","0540","1",""],["741","তূর্ণা এক্সপ্রেস","Chattogram","Dhaka","2330","0510","-",""],["742","তূর্ণা এক্সপ্রেস","Dhaka","Chattogram","2315","0515","-",""],["743","ব্রহ্মপুত্র এক্সপ্রেস","Dhaka","Dewanganj Bazar","1815","2350","-",""],["744","ব্রহ্মপুত্র এক্সপ্রেস","Dewanganj Bazar","Dhaka","0640","1215","-",""],["745","যমুনা এক্সপ্রেস","Dhaka","Tarakandi","1645","2330","-",""],["746","যমুনা এক্সপ্রেস","Tarakandi","Dhaka","0200","0800","-",""],["749","এগারসিন্দুর গোধূলী","Dhaka","Kishoreganj","1845","2240","-",""],["750","এগারসিন্দুর গোধূলী","Kishoreganj","Dhaka","1250","1645","3",""],["773","কালনী এক্সপ্রেস","Dhaka","Sylhet","1455","2130","5",""],["774","কালনী এক্সপ্রেস","Sylhet","Dhaka","0615","1255","5",""],["777","হাওর এক্সপ্রেস","Dhaka","Mohanganj","2215","0410","5",""],["778","হাওর এক্সপ্রেস","Mohanganj","Dhaka","0800","1355","6",""],["781","কিশোরগঞ্জ এক্সপ্রেস","Dhaka","Kishoreganj","1030","1410","2",""],["782","কিশোরগঞ্জ এক্সপ্রেস","Kishoreganj","Dhaka","1600","2000","2",""],["785","বিজয় এক্সপ্রেস","Chattogram","Jamalpur","0915","1800","2",""],["786","বিজয় এক্সপ্রেস","Jamalpur","Chattogram","2000","0500","2",""],["787","সোনার বাংলা এক্সপ্রেস","Chattogram","Dhaka","1700","2155","2",""],["788","সোনার বাংলা এক্সপ্রেস","Dhaka","Chattogram","0700","1155","3",""],["789","মোহনগঞ্জ এক্সপ্রেস","Dhaka","Mohanganj","1315","1840","3",""],["790","মোহনগঞ্জ এক্সপ্রেস","Mohanganj","Dhaka","2300","0455","3",""],["799","জামালপুর এক্সপ্রেস","Dhaka","Bhuapur","1000","1645","0",""],["800","জামালপুর এক্সপ্রেস","Bhuapur","Dhaka","1715","2355","0",""],["801","চট্টলা এক্সপ্রেস","Chattogram","Dhaka","0600","1240","5",""],["802","চট্টলা এক্সপ্রেস","Dhaka","Chattogram","1415","2030","5",""],["813","কক্সবাজার এক্সপ্রেস","Cox's Bazar","Dhaka","1230","2100","2",""],["814","কক্সবাজার এক্সপ্রেস","Dhaka","Cox's Bazar","2300","0720","1",""],["815","পর্যটক এক্সপ্রেস","Cox's Bazar","Dhaka","1945","0420","3",""],["816","পর্যটক এক্সপ্রেস","Dhaka","Cox's Bazar","0615","1440","3",""],["821","সৈকত এক্সপ্রেস","Chattogram","Cox's Bazar","0615","0950","1",""],["822","প্রবাল এক্সপ্রেস","Cox's Bazar","Chattogram","1020","1410","1",""],["823","প্রবাল এক্সপ্রেস","Chattogram","Cox's Bazar","1510","1900","1",""],["824","সৈকত এক্সপ্রেস","Cox's Bazar","Chattogram","2000","2350","1",""],["1","ঢাকা মেইল","Chattogram","Dhaka","2345","0700","-",""],["2","চট্টগ্রাম মেইল","Dhaka","Chattogram","2345","0710","-",""],["3","কর্ণফুলী কমিউটার","Chattogram","Dhaka","0945","1820","-",""],["4","কর্ণফুলী কমিউটার","Dhaka","Chattogram","0845","1750","-",""],["9","সুরমা মেইল","Dhaka","Sylhet","2100","0930","-",""],["10","সুরমা মেইল","Sylhet","Dhaka","2020","0955","-",""],["11","নোয়াখালী মেইল","Noakhali","Dhaka","2045","0615","-",""],["12","নোয়াখালী মেইল","Dhaka","Noakhali","1910","0255","-",""],["13","জালালাবাদ মেইল","Chattogram","Sylhet","2000","0850","-",""],["14","জালালাবাদ মেইল","Sylhet","Chattogram","2230","1220","-",""],["29","সাগরিকা কমিউটার","Chattogram","Chandpur","0800","1250","-",""],["30","সাগরিকা কমিউটার","Chandpur","Chattogram","1345","1840","-",""],["33","তিতাস কমিউটার","Akhaura","Dhaka","0500","0835","-",""],["34","তিতাস কমিউটার","Dhaka","Brahmanbaria","0945","1230","-",""],["35","তিতাস কমিউটার","Brahmanbaria","Dhaka","1330","1530","-",""],["36","তিতাস কমিউটার","Dhaka","Akhaura","1745","2130","-",""],["37","ময়মনসিংহ মেইল","Chattogram","Ibrahimabad","1615","0900","-",""],["38","ময়মনসিংহ মেইল","Ibrahimabad","Chattogram","0300","2020","-",""],["39","ঈশাখাঁ মেইল","Dhaka","Mymensingh","1145","2050","-",""],["40","ঈশাখাঁ মেইল","Mymensingh","Dhaka","1350","0015","-",""],["43","মহুয়া কমিউটার","Dhaka","Mohanganj","0815","1445","-",""],["44","মহুয়া কমিউটার","Mohanganj","Dhaka","1515","2225","-",""],["45","সমতট মেইল","Noakhali","Laksam","0730","0920","-",""],["46","সমতট মেইল","Laksam","Noakhali","1800","1955","-",""],["47","দেওয়ানগঞ্জ কমিউটার","Dhaka","Dewanganj Bazar","0540","1150","-",""],["48","দেওয়ানগঞ্জ কমিউটার","Dewanganj Bazar","Dhaka","1300","1930","-",""],["49","বলাকা কমিউটার","Dhaka","Jaria Jhanjail","0845","1040","-",""],["50","বলাকা কমিউটার","Jaria Jhanjail","Dhaka","1140","1730","-",""],["51","জামালপুর কমিউটার","Dhaka","Dewanganj Bazar","1540","2220","-",""],["52","জামালপুর কমিউটার","Dewanganj Bazar","Dhaka","0500","1050","-",""],["55","ভাওয়াল মেইল","Dhaka","Dewanganj Bazar","2015","0355","-",""],["56","ভাওয়াল মেইল","Dewanganj Bazar","Dhaka","0100","0920","-",""],["75","ধলেশ্বরী মেইল","Mymensingh","Ibrahimabad","1500","1920","-",""],["76","ধলেশ্বরী মেইল","Ibrahimabad","Mymensingh","1950","2340","-",""],["1001","তুরাগ কমিউটার-১","Dhaka","Joydebpur","0500","0600","5",""],["1002","তুরাগ কমিউটার-২","Joydebpur","Dhaka","0630","0745","5",""],["1003","তুরাগ কমিউটার-৩","Dhaka","Joydebpur","1720","1840","5",""],["1004","তুরাগ কমিউটার-৪","Joydebpur","Dhaka","2205","2315","5",""],["1101","নারায়ণগঞ্জ কমিউটার-১","Narayanganj","Dhaka","0545","0635","-",""],["1102","নারায়ণগঞ্জ কমিউটার-২","Dhaka","Narayanganj","0430","0525","-",""],["1103","নারায়ণগঞ্জ কমিউটার-৩","Narayanganj","Dhaka","0800","0850","-",""],["1104","নারায়ণগঞ্জ কমিউটার-৪","Dhaka","Narayanganj","0655","0740","-",""],["1105","নারায়ণগঞ্জ কমিউটার-৫","Narayanganj","Dhaka","1025","1115","-",""],["1106","নারায়ণগঞ্জ কমিউটার-৬","Dhaka","Narayanganj","0915","1005","-",""],["1107","নারায়ণগঞ্জ কমিউটার-৭","Narayanganj","Dhaka","1335","1425","-",""],["1108","নারায়ণগঞ্জ কমিউটার-৮","Dhaka","Narayanganj","1225","1315","-",""],["1109","নারায়ণগঞ্জ কমিউটার-৯","Narayanganj","Dhaka","1555","1645","-",""],["1110","নারায়ণগঞ্জ কমিউটার-১০","Dhaka","Narayanganj","1445","1535","-",""],["1111","নারায়ণগঞ্জ কমিউটার-১১","Narayanganj","Dhaka","1820","1915","-",""],["1112","নারায়ণগঞ্জ কমিউটার-১২","Dhaka","Narayanganj","1705","1755","-",""],["1113","নারায়ণগঞ্জ কমিউটার-১৩","Narayanganj","Dhaka","2045","2135","-",""],["1114","নারায়ণগঞ্জ কমিউটার-১৪","Dhaka","Narayanganj","1935","2025","-",""],["1115","নারায়ণগঞ্জ কমিউটার-১৫","Narayanganj","Dhaka","2305","2355","-",""],["1116","নারায়ণগঞ্জ কমিউটার-১৬","Dhaka","Narayanganj","2155","2245","-",""],["107","টাঙ্গাইল কমিউটার-১","Ibrahimabad","Dhaka","0630","0935","5",""],["108","টাঙ্গাইল কমিউটার-২","Dhaka","Ibrahimabad","1800","2020","5",""],["2001","জয়দেবপুর কমিউটার-১","Dhaka","Joydebpur","0525","0625","6",""],["2002","জয়দেবপুর কমিউটার-২","Joydebpur","Dhaka","0710","0820","6",""],["2003","জয়দেবপুর কমিউটার-৩","Dhaka","Joydebpur","1100","1205","6",""],["2004","জয়দেবপুর কমিউটার-৪","Joydebpur","Dhaka","1230","1340","6",""],["17","কুশিয়ারা মেইল","Akhaura","Sylhet","","","-","s"],["18","কুশিয়ারা মেইল","Sylhet","Akhaura","","","-","s"],["81","চাঁদপুর কমিউটার","Laksam","Chandpur","","","-","s"],["82","চাঁদপুর কমিউটার","Chandpur","Laksam","","","-","s"],["83","চাঁদপুর কমিউটার","Laksam","Chandpur","","","-","s"],["84","চাঁদপুর কমিউটার","Chandpur","Laksam","","","-","s"],["85","নোয়াখালী কমিউটার","Laksam","Noakhali","","","-","s"],["86","নোয়াখালী কমিউটার","Noakhali","Laksam","","","-","s"],["87","নোয়াখালী কমিউটার","Laksam","Noakhali","","","-","s"],["88","নোয়াখালী কমিউটার","Noakhali","Laksam","","","-","s"],["241","লোকাল","Mymensingh","Bhairab Bazar","","","-","s"],["242","লোকাল","Bhairab Bazar","Mymensingh","","","-","s"],["243","লোকাল","Mymensingh","Bhairab Bazar","","","-","s"],["244","লোকাল","Bhairab Bazar","Mymensingh","","","-","s"],["251","লোকাল","Mymensingh","Dewanganj Bazar","","","-","s"],["252","লোকাল","Dewanganj Bazar","Mymensingh","","","-","s"],["705","একতা এক্সপ্রেস","Dhaka","Panchagarh","1015","2100","-",""],["706","একতা এক্সপ্রেস","Panchagarh","Dhaka","2110","0720","-",""],["713","করতোয়া এক্সপ্রেস","Santahar","Burimari","0925","1600","3",""],["714","করতোয়া এক্সপ্রেস","Burimari","Santahar","1620","2240","3",""],["715","কপোতাক্ষ এক্সপ্রেস","Khulna","Rajshahi","0645","1220","5",""],["716","কপোতাক্ষ এক্সপ্রেস","Rajshahi","Khulna","1430","2025","5",""],["725","সুন্দরবন এক্সপ্রেস","Khulna","Dhaka","2145","0510","2",""],["726","সুন্দরবন এক্সপ্রেস","Dhaka","Khulna","0800","1540","3",""],["727","রূপসা এক্সপ্রেস","Khulna","Chilahati","0715","1700","4",""],["728","রূপসা এক্সপ্রেস","Chilahati","Khulna","0830","1825","4",""],["731","বরেন্দ্র এক্সপ্রেস","Rajshahi","Chilahati","1500","2130","0",""],["732","বরেন্দ্র এক্সপ্রেস","Chilahati","Rajshahi","0500","1110","0",""],["733","তিতুমীর এক্সপ্রেস","Rajshahi","Chilahati","0620","1300","3",""],["734","তিতুমীর এক্সপ্রেস","Chilahati","Rajshahi","1500","2130","3",""],["747","সীমান্ত এক্সপ্রেস","Khulna","Chilahati","2115","0645","1",""],["748","সীমান্ত এক্সপ্রেস","Chilahati","Khulna","1830","0410","1",""],["751","লালমনি এক্সপ্রেস","Dhaka","Lalmonirhat","2145","0720","5",""],["752","লালমনি এক্সপ্রেস","Lalmonirhat","Dhaka","0950","1945","5",""],["753","সিল্কসিটি এক্সপ্রেস","Dhaka","Rajshahi","1430","2020","0",""],["754","সিল্কসিটি এক্সপ্রেস","Rajshahi","Dhaka","0740","1310","0",""],["755","মধুমতি এক্সপ্রেস","Dhaka","Rajshahi","1500","2230","6",""],["756","মধুমতি এক্সপ্রেস","Rajshahi","Dhaka","0640","1400","6",""],["757","দ্রুতযান এক্সপ্রেস","Dhaka","Panchagarh","2045","0710","-",""],["758","দ্রুতযান এক্সপ্রেস","Panchagarh","Dhaka","0720","1855","-",""],["759","পদ্মা এক্সপ্রেস","Dhaka","Rajshahi","2245","0400","2",""],["760","পদ্মা এক্সপ্রেস","Rajshahi","Dhaka","1600","2115","2",""],["761","সাগরদাঁড়ি এক্সপ্রেস","Khulna","Rajshahi","1600","2200","1",""],["762","সাগরদাঁড়ি এক্সপ্রেস","Rajshahi","Khulna","0600","1210","1",""],["763","চিত্রা এক্সপ্রেস","Khulna","Dhaka","0900","1805","0",""],["764","চিত্রা এক্সপ্রেস","Dhaka","Khulna","1930","0440","0",""],["765","নীলসাগর এক্সপ্রেস","Dhaka","Chilahati","0645","1600","3",""],["766","নীলসাগর এক্সপ্রেস","Chilahati","Dhaka","2000","0525","2",""],["767","দোলনচাঁপা এক্সপ্রেস","Santahar","Panchagarh","1100","2040","-",""],["768","দোলনচাঁপা এক্সপ্রেস","Panchagarh","Santahar","0600","1615","-",""],["769","ধূমকেতু এক্সপ্রেস","Dhaka","Rajshahi","0600","1140","4",""],["770","ধূমকেতু এক্সপ্রেস","Rajshahi","Dhaka","2320","0440","3",""],["771","রংপুর এক্সপ্রেস","Dhaka","Rangpur","0910","1900","1",""],["772","রংপুর এক্সপ্রেস","Rangpur","Dhaka","2000","0600","0",""],["775","সিরাজগঞ্জ এক্সপ্রেস","Sirajganj Bazar","Dhaka","0600","1015","6",""],["776","সিরাজগঞ্জ এক্সপ্রেস","Dhaka","Sirajganj Bazar","1615","2010","6",""],["779","ঢালারচর এক্সপ্রেস","Dhalarchar","Rajshahi","0630","1025","4",""],["780","ঢালারচর এক্সপ্রেস","Rajshahi","Dhalarchar","1720","2115","3",""],["783","টুঙ্গীপাড়া এক্সপ্রেস","Gobra","Rajshahi","0630","1315","2",""],["784","টুঙ্গীপাড়া এক্সপ্রেস","Rajshahi","Gobra","1530","2210","1",""],["791","বনলতা এক্সপ্রেস","Dhaka","Chapainawabganj","1330","1915","5",""],["792","বনলতা এক্সপ্রেস","Chapainawabganj","Dhaka","0600","1135","5",""],["793","পঞ্চগড় এক্সপ্রেস","Dhaka","Panchagarh","2330","0950","-",""],["794","পঞ্চগড় এক্সপ্রেস","Panchagarh","Dhaka","1210","2210","-",""],["795","বেনাপোল এক্সপ্রেস","Benapole","Dhaka","1225","2030","3",""],["796","বেনাপোল এক্সপ্রেস","Dhaka","Benapole","2330","0700","3",""],["797","কুড়িগ্রাম এক্সপ্রেস","Dhaka","Kurigram","2000","0510","2",""],["798","কুড়িগ্রাম এক্সপ্রেস","Kurigram","Dhaka","0710","1705","2",""],["803","বাংলাবান্ধা এক্সপ্রেস","Rajshahi","Panchagarh","2100","0440","5",""],["804","বাংলাবান্ধা এক্সপ্রেস","Panchagarh","Rajshahi","0900","1715","6",""],["805","চিলাহাটি এক্সপ্রেস","Dhaka","Chilahati","1700","0245","6",""],["806","চিলাহাটি এক্সপ্রেস","Chilahati","Dhaka","0600","1455","6",""],["809","বুড়িমারী এক্সপ্রেস","Dhaka","Burimari","0830","2020","3",""],["810","বুড়িমারী এক্সপ্রেস","Burimari","Dhaka","2120","0850","2",""],["825","জাহানাবাদ এক্সপ্রেস","Khulna","Dhaka","0600","0945","1",""],["826","জাহানাবাদ এক্সপ্রেস","Dhaka","Khulna","2000","2345","1",""],["827","রূপসীবাংলা এক্সপ্রেস","Benapole","Dhaka","1525","1900","1",""],["828","রূপসীবাংলা এক্সপ্রেস","Dhaka","Benapole","1045","1425","1",""],["3107","মৈত্রী এক্সপ্রেস","Dhaka Cantonment","Kolkata","0815","1600","D:5,0,2","v=Darshana"],["3108","মৈত্রী এক্সপ্রেস","Kolkata","Dhaka Cantonment","0710","1535","D:6,1,3","v=Darshana"],["3129","বন্ধন এক্সপ্রেস","Kolkata","Khulna","0710","1235","D:0,4",""],["3130","বন্ধন এক্সপ্রেস","Khulna","Kolkata","1330","1810","D:0,4",""],["3131","মিতালী এক্সপ্রেস","Dhaka Cantonment","New Jalpaiguri","2150","0745","D:1,4",""],["3132","মিতালী এক্সপ্রেস","New Jalpaiguri","Dhaka Cantonment","1145","2210","D:0,3",""],["5","রাজশাহী কমিউটার","Dhaka","Chapainawabganj","1215","2200","-",""],["6","রাজশাহী কমিউটার","Chapainawabganj","Ishwardi","0830","1240","-",""],["7","উত্তরবঙ্গ মেইল","Santahar","Panchagarh","0945","2205","-",""],["8","উত্তরবঙ্গ মেইল","Panchagarh","Santahar","0920","2255","-",""],["15","মহানন্দা মেইল","Khulna","Chapainawabganj","1100","2100","-",""],["16","মহানন্দা মেইল","Rohanpur","Khulna","0600","1640","-",""],["19","বগুড়া কমিউটার","Santahar","Lalmonirhat","1250","2000","-",""],["20","বগুড়া কমিউটার","Lalmonirhat","Santahar","0610","1215","-",""],["21","পদ্মরাগ কমিউটার","Santahar","Lalmonirhat","0630","1245","-",""],["22","পদ্মরাগ কমিউটার","Lalmonirhat","Santahar","1345","2030","-",""],["23","রকেট মেইল","Khulna","Parbatipur","0930","2110","-",""],["24","রকেট মেইল","Parbatipur","Khulna","0855","2250","-",""],["25","নকশীকাঁথা কমিউটার","Khulna","Dhaka","2300","0910","-",""],["26","নকশীকাঁথা কমিউটার","Dhaka","Khulna","1120","2105","-",""],["27","ঘাঘট মেইল","Parbatipur","Chilahati","2300","0040","-",""],["28","ঘাঘট মেইল","Chilahati","Parbatipur","0650","0835","-",""],["31","উত্তরা মেইল","Rajshahi","Parbatipur","1145","2000","-",""],["32","উত্তরা মেইল","Parbatipur","Rajshahi","0320","1000","-",""],["41","কাঞ্চন কমিউটার","Parbatipur","Panchagarh","0740","1200","-",""],["42","কাঞ্চন কমিউটার","Panchagarh","Parbatipur","1530","1915","-",""],["53","বেতনা কমিউটার","Khulna","Benapole","0615","0830","2",""],["54","বেতনা কমিউটার","Benapole","Khulna","1700","1930","2",""],["57","ঈশ্বরদী কমিউটার","Ishwardi","Rohanpur","0700","1110","3",""],["58","ঈশ্বরদী কমিউটার","Rohanpur","Ishwardi","1710","2040","3",""],["59","রামসাগর মেইল","Bonarpara","Parbatipur","0700","1150","-",""],["60","রামসাগর মেইল","Parbatipur","Bonarpara","1515","2020","-",""],["61","দিনাজপুর কমিউটার","Lalmonirhat","Birol","0630","1050","-",""],["62","দিনাজপুর কমিউটার","Birol","Lalmonirhat","1110","1450","-",""],["63","লালমনি কমিউটার-১","Lalmonirhat","Parbatipur","1400","1620","-",""],["64","লালমনি কমিউটার-২","Parbatipur","Lalmonirhat","0600","0830","-",""],["65","বুড়িমারী কমিউটার-১","Lalmonirhat","Burimari","0840","1100","-",""],["66","বুড়িমারী কমিউটার-২","Burimari","Lalmonirhat","1120","1340","-",""],["69","পার্বতীপুর কমিউটার","Lalmonirhat","Parbatipur","1645","1920","-",""],["70","পার্বতীপুর কমিউটার","Parbatipur","Lalmonirhat","2020","2225","-",""],["71","বুড়িমারী কমিউটার-৩","Lalmonirhat","Burimari","1500","1740","-",""],["72","বুড়িমারী কমিউটার-৪","Burimari","Lalmonirhat","1810","2115","-",""],["77","রোহনপুর কমিউটার","Rajshahi","Rohanpur","1500","1630","3",""],["78","রোহনপুর কমিউটার","Rohanpur","Rajshahi","1220","1400","3",""],["95","মংলা কমিউটার","Mongla","Benapole","1300","1635","2",""],["96","মংলা কমিউটার","Benapole","Mongla","0915","1230","2",""],["97","কুড়িগ্রাম শাটল","Lalmonirhat","Kurigram","1710","1910","-",""],["98","কুড়িগ্রাম শাটল","Kurigram","Lalmonirhat","1930","2120","-",""],["99","ঢাকা কমিউটার","Ishwardi","Dhaka","0500","1105","-",""],["100","লালমনি কমিউটার-৩","Rangpur","Lalmonirhat","1155","1255","-",""],["101","রাজবাড়ী মেইল-১","Rajbari","Bhanga","0700","0845","-",""],["102","রাজবাড়ী মেইল-২","Bhanga","Kamarkhali","0925","1145","-",""],["103","ভাটিয়াপাড়া মেইল","Kamarkhali","Bhatiapara Ghat","1210","1425","-",""],["104","ভাটিয়াপাড়া মেইল","Bhatiapara Ghat","Kamarkhali","1450","1700","-",""],["105","রাজবাড়ী মেইল-৩","Kamarkhali","Bhanga","1730","1950","-",""],["106","রাজবাড়ী মেইল-৪","Bhanga","Rajbari","2015","2200","-",""],["109","চাঁপাইনবাবগঞ্জ শাটল-১","Rajshahi","Chapainawabganj","1035","1150","4",""],["110","চাঁপাইনবাবগঞ্জ শাটল-২","Chapainawabganj","Rajshahi","1415","1540","4",""],["111","পাবনা শাটল-১","Ishwardi","Pabna","0630","0730","3",""],["112","পাবনা শাটল-২","Pabna","Ishwardi","2200","2300","3",""],["119","চিলমারী কমিউটার-১","Kaunia","Romnabazar","2100","2330","-",""],["120","চিলমারী কমিউটার-২","Romnabazar","Rangpur","0830","1125","-",""],["121","চন্দনা কমিউটার","Rajbari","Bhanga","0500","0615","5",""],["122","ভাঙ্গা কমিউটার","Bhanga","Dhaka","0715","0915","5",""],["123","ভাঙ্গা কমিউটার","Dhaka","Bhanga","1800","2000","5",""],["124","চন্দনা কমিউটার","Bhanga","Rajbari","2010","2130","5",""],["125","পুনর্ভবা কমিউটার","Rajshahi","Rohanpur","0610","0830","-",""],["126","পুনর্ভবা কমিউটার","Rohanpur","Rajshahi","1930","2150","-",""],["127","মল্লিকা কমিউটার","Rajshahi","Chapainawabganj","1300","1500","-",""],["128","মল্লিকা কমিউটার","Chapainawabganj","Rajshahi","1015","1200","-",""],["129","অপরাজিতা কমিউটার","Rohanpur","Chapainawabganj","0850","0955","-",""],["130","অপরাজিতা কমিউটার","Chapainawabganj","Rohanpur","1715","1840","-",""],["ডেমু","রংপুর কমিউটার-২","Parbatipur","Lalmonirhat","0945","1135","-",""],["ডেমু","রংপুর কমিউটার-১","Lalmonirhat","Parbatipur","1210","1420","-",""],["ডেমু","পঞ্চগড় কমিউটার-১","Parbatipur","Panchagarh","1520","1810","-",""],["ডেমু","পঞ্চগড় কমিউটার-২","Panchagarh","Parbatipur","1820","2140","-",""],["505","লোকাল","Poradah","Goalundo Ghat","1200","1530","-",""],["506","লোকাল","Goalundo Ghat","Poradah","0730","1115","-",""],["507","লোকাল","Poradah","Rajbari","2000","2220","-",""],["508","লোকাল","Goalundo Ghat","Poradah","1550","1915","-",""],["511","মিশ্র","Goalundo Ghat","Ishwardi","2130","0500","-",""],["512","মিশ্র","Ishwardi","Rajbari","2230","0350","-",""],["513","লোকাল","Rajbari","Goalundo Ghat","0615","0700","-",""],["515","লোকাল","Rajbari","Goalundo Ghat","2015","2100","-",""],["541","লোকাল","Ishwardi","Parbatipur","0815","1715","-",""],["542","লোকাল","Parbatipur","Ishwardi","1140","2120","-",""],["585","লোকাল","Chapainawabganj","Rohanpur","2215","2350","-",""],["591","মিশ্র","Parbatipur","Chilahati","0000","0340","-",""],["592","মিশ্র","Chilahati","Parbatipur","0730","1040","-",""],["411","লোকাল","Lalmonirhat","Parbatipur","0500","0730","-",""],["412","লোকাল","Parbatipur","Lalmonirhat","1015","1230","-",""],["413","মিশ্র","Lalmonirhat","Parbatipur","2230","0155","-",""],["414","মিশ্র","Parbatipur","Lalmonirhat","2130","0110","-",""],["415","লোকাল","Romnabazar","Rangpur","1210","1525","-",""],["416","লোকাল","Rangpur","Kurigram","1555","1720","-",""],["421","লোকাল","Kurigram","Parbatipur","1740","2040","-",""],["422","লোকাল","Parbatipur","Romnabazar","0700","1150","-",""],["431","লোকাল","Parbatipur","Panchagarh","1000","1445","-",""],["432","মিশ্র","Panchagarh","Parbatipur","1000","2240","-",""],["433","মিশ্র","Parbatipur","Panchagarh","0000","0800","-",""],["434","লোকাল","Panchagarh","Parbatipur","1600","1940","-",""],["451","মিশ্র","Lalmonirhat","Burimari","0430","0925","-",""],["452","মিশ্র","Burimari","Lalmonirhat","1140","1710","-",""],["453","লোকাল","Lalmonirhat","Burimari","1305","1615","-",""],["454","লোকাল","Burimari","Lalmonirhat","1700","1950","-",""],["455","লোকাল","Lalmonirhat","Burimari","2040","2330","-",""],["456","লোকাল","Burimari","Lalmonirhat","0600","0825","-",""],["461","লোকাল","Lalmonirhat","Parbatipur","0850","1120","-",""],["462","লোকাল","Parbatipur","Lalmonirhat","1820","2030","-",""],["481","লোকাল","Santahar","Lalmonirhat","1040","1755","-",""],["482","লোকাল","Lalmonirhat","Santahar","0520","1310","-",""],["491","লোকাল","Santahar","Bonarpara","1840","2210","-",""],["492","লোকাল","Bonarpara","Santahar","0700","1020","-",""]];
+var DAYS=["রবিবার","সোমবার","মঙ্গলবার","বুধবার","বৃহস্পতিবার","শুক্রবার","শনিবার"];
+var MONTHS=["জানুয়ারি","ফেব্রুয়ারি","মার্চ","এপ্রিল","মে","জুন","জুলাই","আগস্ট","সেপ্টেম্বর","অক্টোবর","নভেম্বর","ডিসেম্বর"];
+var ENDAY=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+function B(x){return String(x).replace(/\d/g,function(d){return"০১২৩৪৫৬৭৮৯".charAt(d)})}
+function hm(s){return +s.slice(0,2)*60+ +s.slice(2)}
+var T=[];
+DATA.forEach(function(r,i){
+  var t={no:r[0],key:"t"+i,name:r[1],from:r[2],to:r[3],off:r[6],susp:r[7]==="s"};
+  var via=(r[7]||"").indexOf("v=")===0?r[7].slice(2):null;
+  var n=parseInt(t.no,10);
+  t.type=(n>=3000)?"আন্তর্জাতিক":(n>=700&&n<1000)?"আন্তঃনগর":(n>=400&&n<600)||t.name==="লোকাল"||t.name==="মিশ্র"?"লোকাল":"মেইল ও কমিউটার";
+  t.path=routeOf(t.from,t.to,via);
+  if(!t.path)return;
+  t.tot=t.path.tot;t.idx={};t.path.stops.forEach(function(s,j){t.idx[s.name]=j});
+  if(!t.susp){t.d=hm(r[4]);t.a=hm(r[5]);if(t.a<=t.d)t.a+=1440;t.dur=t.a-t.d;t.timed=true}
+  T.push(t);
+});
+var BYKEY={};T.forEach(function(t){BYKEY[t.key]=t});
+var STATIONS={};T.forEach(function(t){t.path.stops.forEach(function(s){STATIONS[s.name]=1})});
+var STN=Object.keys(STATIONS).sort(function(a,b){return sn(a).localeCompare(sn(b),"bn")});
+try{var svd=JSON.parse(localStorage.getItem("tk-dl")||"{}");T.forEach(function(t){var v=svd[t.no+"|"+t.name];if(v>0)t.dl=v})}catch(e){}
+var NSUSP=T.filter(function(t){return t.susp}).length;
+
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function fmt(m,nd){
+  m=Math.round(m);var d=Math.floor(m/1440);m=((m%1440)+1440)%1440;var h=Math.floor(m/60),x=m%60;
+  var p=h<4?"রাত":h<6?"ভোর":h<12?"সকাল":h<15?"দুপুর":h<18?"বিকাল":h<20?"সন্ধ্যা":"রাত";
+  return p+" "+B(h%12||12)+":"+B((x<10?"0":"")+x)+(d>0&&!nd?" (পরদিন)":"");
+}
+function dur(m){m=Math.max(0,Math.round(m));var h=Math.floor(m/60),x=m%60;return h?(B(h)+" ঘণ্টা"+(x?" "+B(x)+" মিনিট":"")):B(x)+" মিনিট"}
+function durS(m){m=Math.max(0,Math.round(m));var h=Math.floor(m/60),x=m%60;return (h?B(h)+"ঘ ":"")+B(x)+"মি"}
+function tmAt(t,km){return t.d+(t.dl||0)+Math.round(t.dur*km/t.tot)}
+function segAt(P,km){var i=0;while(i<P.stops.length-2&&km>=P.stops[i+1].km)i++;return i}
+function noText(t){return /^\d/.test(t.no)?B(t.no):t.no}
+
+/* ---------- Time ---------- */
+var mode="live",tmin=720,day=1,playing=false;
+function dhaka(){
+  var p=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Dhaka",hour:"2-digit",minute:"2-digit",second:"2-digit",weekday:"long",day:"numeric",month:"numeric",hourCycle:"h23"}).formatToParts(new Date()),o={};
+  p.forEach(function(x){o[x.type]=x.value});
+  var wd=ENDAY.indexOf(o.weekday);
+  return{min:+o.hour*60+ +o.minute+ +o.second/60,wd:wd,label:DAYS[wd]+", "+B(o.day)+" "+MONTHS[+o.month-1]};
+}
+function ctx(){if(mode==="live")return dhaka();return{min:tmin,wd:day,label:DAYS[day]}}
+
+function status(t,min,wd){
+  if(t.susp)return{k:"susp"};
+  min-=(t.dl||0);
+  var off=t.off;
+  function runs(w){return Array.isArray(off)?off.indexOf(w)>=0:off!==w}
+  var yd=(wd+6)%7;
+  if(t.a>1440&&runs(yd)&&min<=t.a-1440)return{k:"run",f:(min+1440-t.d)/t.dur,shift:1440};
+  if(!runs(wd))return{k:"off"};
+  if(min<t.d)return{k:"wait",in:t.d-min};
+  if(min<=t.a)return{k:"run",f:(min-t.d)/t.dur,shift:0};
+  return{k:"done"};
+}
+DATA.forEach(function(r){var o=r[6];if(o==="-")r[6]=-1})
+T.forEach(function(t){var o=t.off;if(o==="-")t.off=-1;else if(typeof o==="string"&&o.indexOf("D:")===0)t.off=o.slice(2).split(",").map(Number);else if(typeof o==="string")t.off=+o});
+
+var sel=null,filt="সব",qs="",showSusp=false,fromS="",toS="",stopSel={},cur=null,R=null,lastList="";
+
+/* ---------- List ---------- */
+function pairIdx(t){
+  var fi=fromS?t.idx[fromS]:0,ti=toS?t.idx[toS]:t.path.stops.length-1;
+  if(fi===undefined||ti===undefined||fi>=ti)return null;
+  return{fi:fi,ti:ti};
+}
+function pillFor(st){
+  if(st.k==="run")return'<span class="pill p-run">চলছে</span>';
+  if(st.k==="wait")return'<span class="pill p-wait">আর '+durS(st.in)+'</span>';
+  if(st.k==="off")return'<span class="pill p-off">আজ বন্ধ</span>';
+  if(st.k==="done")return'<span class="pill p-none">পৌঁছেছে</span>';
+  return'<span class="pill p-none">বন্ধ আছে</span>';
+}
+function renderList(){
+  var c=ctx(),q=qs.toLowerCase(),rows=[];
+  T.forEach(function(t){
+    if(t.susp&&!showSusp)return;
+    if(filt!=="সব"&&t.type!==filt)return;
+    if(q&&(t.name+" "+t.no+" "+B(t.no)).toLowerCase().indexOf(q)<0)return;
+    var pi=pairIdx(t);if(!pi)return;
+    var key=t.timed?(tmAt(t,t.path.stops[pi.fi].km)%1440):5000+(parseInt(t.no,10)||0);
+    var s0=status(t,c.min,c.wd),rk={run:0,wait:1,done:2,off:3,susp:4}[s0.k];
+    rows.push({t:t,pi:pi,key:s0.k==="wait"?s0.in:key,rk:rk});
+  });
+  rows.sort(function(a,b){return a.rk-b.rk||a.key-b.key});
+  var pair=fromS||toS;
+  var h=rows.map(function(x){
+    var t=x.t,st=status(t,c.min,c.wd),line;
+    if(t.timed&&pair){var f=t.path.stops[x.pi.fi],o=t.path.stops[x.pi.ti];line=esc(sn(f.name))+' '+fmt(tmAt(t,f.km),true)+' → '+esc(sn(o.name))+' '+fmt(tmAt(t,o.km),true)}
+    else if(t.timed)line=esc(sn(t.from))+' → '+esc(sn(t.to))+' · '+fmt(t.d+(t.dl||0),true)+' থেকে '+fmt(t.a+(t.dl||0),true);
+    else line=esc(sn(t.from))+' → '+esc(sn(t.to));
+    return'<button class="train" data-k="'+t.key+'"'+(t.key===sel?' aria-current="true"':'')+'><span class="no">'+esc(noText(t))+'</span><span class="nm">'+esc(t.name)+'</span>'+pillFor(st)+'<span class="rt">'+line+'</span></button>';
+  }).join("");
+  if(!h)h='<div class="empty">কোনো ট্রেন পাওয়া যায়নি। অন্য স্টেশন বা অন্য নাম দিয়ে চেষ্টা করুন।</div>';
+  if(h!==lastList){var box=document.getElementById("trains"),sc=box.scrollTop;box.innerHTML=h;box.scrollTop=sc;lastList=h}
+  var msg="";
+  if(fromS&&toS)msg=sn(fromS)+" থেকে "+sn(toS)+": ";else if(fromS)msg=sn(fromS)+" থেকে ছাড়ে: ";else if(toS)msg=sn(toS)+" পর্যন্ত যায়: ";
+  msg+=B(rows.length)+"টি ট্রেন";
+  if(pair)msg+="। রেলপথের সব স্টেশনে ট্রেন নাও থামতে পারে।";
+  document.getElementById("count").textContent=msg;
+  Array.prototype.forEach.call(document.getElementById("pop").children,function(b){b.setAttribute("aria-pressed",b.getAttribute("data-f")===fromS&&b.getAttribute("data-t")===toS)});
+}
+
+/* ---------- Detail ---------- */
+function buildDetail(t){
+  cur=t;var P=t.path,n=P.stops.length;
+  var my=stopSel[t.key];
+  if(my==null||my>=n){my=toS&&t.idx[toS]!==undefined?t.idx[toS]:n-1}
+  var opts=P.stops.map(function(x,i){return'<option value="'+i+'"'+(i===my?' selected':'')+'>'+esc(sn(x.name))+'</option>'}).join("");
+  var h='<h2>'+esc(t.name)+'<small>নম্বর '+esc(noText(t))+'</small></h2><p class="dir">'+esc(sn(t.from))+' → '+esc(sn(t.to))+' · '+esc(t.type)+' · প্রায় '+B(Math.round(P.tot))+' কিমি</p>';
+  if(t.timed){
+    h+='<p class="now" id="now"></p>';
+    h+='<div class="focus"><div class="ends"><div><small id="ls">আগের স্টেশন</small><b id="ln"></b><span id="lt"></span></div><div class="r"><small id="rs">পরের স্টেশন</small><b id="rn"></b><span id="rt"></span></div></div>'
+      +'<div class="rail" id="rail"><div class="sc sea"><div class="wv"><svg viewBox="0 0 1200 22" preserveAspectRatio="none"><path fill="var(--water2)" d="M0 10 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 L1200 40 L0 40Z"/></svg></div></div><div class="sc sun"></div><div class="sc cloud"></div><div class="sc cloud c2"></div><div class="sc bird" style="top:24px;animation-delay:0s;animation-duration:15s"><svg viewBox="0 0 16 8"><path d="M0 7Q4 0 8 6Q12 0 16 7"/></svg></div><div class="sc bird" style="top:52px;animation-delay:-6s;animation-duration:19s"><svg viewBox="0 0 16 8"><path d="M0 7Q4 0 8 6Q12 0 16 7"/></svg></div><div class="sc bird" style="top:36px;animation-delay:-11s;animation-duration:23s"><svg viewBox="0 0 16 8"><path d="M0 7Q4 0 8 6Q12 0 16 7"/></svg></div><div class="sc lay lh1"><svg viewBox="0 0 1200 60" preserveAspectRatio="none"><path fill="var(--hill1)" d="M0 60 L0 38 Q75 8 150 30 T300 24 T450 34 T600 38 Q675 8 750 30 T900 24 T1050 34 T1200 38 L1200 60Z"/></svg></div><div class="sc lay lh2"><svg viewBox="0 0 1200 70" preserveAspectRatio="none"><path fill="var(--hill2)" d="M0 70 L0 50 Q100 20 200 44 T400 40 T600 50 Q700 20 800 44 T1000 40 T1200 50 L1200 70Z"/></svg></div><div class="sc gr"></div><div class="sc lay ltr"><svg viewBox="0 0 1200 46" preserveAspectRatio="none"><rect x="39" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="40" cy="23" r="13" fill="var(--tree)"/><rect x="104" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="105" cy="24" r="10" fill="var(--tree2)"/><rect x="174" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="175" cy="22" r="15" fill="var(--tree)"/><rect x="254" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="255" cy="23" r="11" fill="var(--tree2)"/><rect x="329" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="330" cy="22" r="14" fill="var(--tree)"/><rect x="409" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="410" cy="24" r="10" fill="var(--tree2)"/><rect x="479" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="480" cy="23" r="13" fill="var(--tree)"/><rect x="544" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="545" cy="23" r="11" fill="var(--tree2)"/><rect x="639" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="640" cy="23" r="13" fill="var(--tree)"/><rect x="704" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="705" cy="24" r="10" fill="var(--tree2)"/><rect x="774" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="775" cy="22" r="15" fill="var(--tree)"/><rect x="854" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="855" cy="23" r="11" fill="var(--tree2)"/><rect x="929" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="930" cy="22" r="14" fill="var(--tree)"/><rect x="1009" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="1010" cy="24" r="10" fill="var(--tree2)"/><rect x="1079" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="1080" cy="23" r="13" fill="var(--tree)"/><rect x="1144" y="30" width="3" height="14" fill="var(--bank)"/><circle cx="1145" cy="23" r="11" fill="var(--tree2)"/></svg></div><div class="sc lay lbr"><svg viewBox="0 0 1200 116" preserveAspectRatio="none"><path d="M60 80V34H360 V80" fill="none" stroke="var(--ink)" stroke-width="2"/><path d="M60 34V80 M60 80L110 34" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="M110 34V80 M110 80L160 34" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="M160 34V80 M160 80L210 34" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="M210 34V80 M210 80L260 34" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="M260 34V80 M260 80L310 34" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="M310 34V80 M310 80L360 34" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="M60 34H360" stroke="var(--ink)" stroke-width="3"/><rect x="55" y="80" width="10" height="36" fill="var(--ink)" opacity=".55"/><rect x="205" y="80" width="10" height="36" fill="var(--ink)" opacity=".55"/><rect x="355" y="80" width="10" height="36" fill="var(--ink)" opacity=".55"/><path d="M660 80V34H960 V80" fill="none" stroke="var(--ink)" stroke-width="2"/><path d="M660 34V80 M660 80L710 34" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="M710 34V80 M710 80L760 34" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="M760 34V80 M760 80L810 34" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="M810 34V80 M810 80L860 34" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="M860 34V80 M860 80L910 34" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="M910 34V80 M910 80L960 34" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="M660 34H960" stroke="var(--ink)" stroke-width="3"/><rect x="655" y="80" width="10" height="36" fill="var(--ink)" opacity=".55"/><rect x="805" y="80" width="10" height="36" fill="var(--ink)" opacity=".55"/><rect x="955" y="80" width="10" height="36" fill="var(--ink)" opacity=".55"/></svg></div><div class="sc bank"></div><div class="sc river"><div class="wv w1"><svg viewBox="0 0 1200 28" preserveAspectRatio="none"><path fill="var(--water2)" d="M0 10 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 q25 -6 50 0 t50 0 L1200 40 L0 40Z"/></svg></div><div class="wv w2"><svg viewBox="0 0 1200 20" preserveAspectRatio="none"><path fill="var(--water2)" d="M0 10 q37.5 -5 75 0 t75 0 q37.5 -5 75 0 t75 0 q37.5 -5 75 0 t75 0 q37.5 -5 75 0 t75 0 q37.5 -5 75 0 t75 0 q37.5 -5 75 0 t75 0 q37.5 -5 75 0 t75 0 q37.5 -5 75 0 t75 0 L1200 40 L0 40Z"/></svg></div></div><div class="ties"></div><div class="steel"></div><div class="plat l"></div><div class="plat rr"></div><div class="post l"></div><div class="post rr"></div>'
+      +'<div class="tw" id="tw"><svg viewBox="0 0 358 40" role="img" aria-label="ট্রেন"><use href="#trn"/><g class="smk"><circle cx="335" cy="1" r="3.5"/><circle cx="335" cy="1" r="3.5"/><circle cx="335" cy="1" r="3.5"/></g></svg></div></div></div>';
+    h+='<div class="facts"><div><small>আপনার স্টেশন</small><select id="mystop" aria-label="আপনার স্টেশন">'+opts+'</select></div><div><small>পৌঁছাবে</small><strong id="eta">—</strong><em id="etan"></em></div>'
+      +'<div><small>অগ্রগতি</small><strong id="prog">—</strong><em id="progn"></em></div><div><small>গড় গতি</small><strong>'+B(Math.round(P.tot/t.dur*60))+' কিমি/ঘণ্টা</strong><em>পুরো পথে '+dur(t.dur)+'</em></div></div>';
+    h+=delayHtml(t);
+  }else{
+    h+='<div class="empty">রেলওয়ের সময়সূচিতে এই ট্রেনটি এখন বন্ধ দেখানো আছে, তাই এর অবস্থান হিসাব করা যাচ্ছে না। নিচে শুধু রেলপথ দেখানো হলো।</div>';
+    h+='<div class="facts"><div><small>আপনার স্টেশন</small><select id="mystop" aria-label="আপনার স্টেশন">'+opts+'</select></div><div><small>'+esc(sn(t.from))+' থেকে দূরত্ব</small><strong id="eta">'+B(Math.round(P.stops[my].km))+' কিমি</strong></div></div>';
+  }
+  if(t.timed)h+='<button class="btn gob" id="gotrain">ট্রেনের অবস্থানে যান</button>';
+  h+='<div class="rwrap" id="rwrap"><div class="rt2" id="rt2" style="width:'+(n*100)+'px">';
+  for(var i=0;i<n-1;i++)h+='<div class="seg2" style="left:'+(50+100*i)+'px;width:100px"><b></b></div>';
+  P.stops.forEach(function(x,i){
+    var mark=(fromS&&x.name===fromS)||(toS&&x.name===toS);
+    h+='<div class="stp'+(mark?' sel':'')+'" style="left:'+(100*i)+'px"><i></i><span>'+esc(sn(x.name))+'</span>'+(t.timed?'<time>'+fmt(tmAt(t,x.km),true)+'</time>':'')+'<u>'+B(Math.round(x.km))+' কিমি</u></div>';
+  });
+  if(t.timed)h+='<div class="mk" id="mk"><svg viewBox="0 0 358 40" aria-hidden="true"><use href="#trn"/></svg></div>';
+  h+='</div></div>';
+  if(t.timed){
+    var o=t.off;
+    h+=Array.isArray(o)?'<p class="note">শুধু এই বারগুলোতে চলে: '+o.map(function(d){return DAYS[d]}).join(", ")+'।</p>':o===-1?'<p class="note">প্রতিদিন চলে।</p>':'<p class="note">সাপ্তাহিক বন্ধ: '+DAYS[o]+'।</p>';
+    h+='<p class="note">দুই প্রান্তের মাঝের স্টেশনের সময় দূরত্ব ধরে হিসাব করা, রেলওয়ের প্রকাশিত সময় নয়।</p>';
+  }
+  var el=document.getElementById("detail");el.innerHTML=h;
+  R={now:document.getElementById("now"),ls:document.getElementById("ls"),ln:document.getElementById("ln"),lt:document.getElementById("lt"),rs:document.getElementById("rs"),rn:document.getElementById("rn"),rt:document.getElementById("rt"),
+     rail:document.getElementById("rail"),tw:document.getElementById("tw"),mk:document.getElementById("mk"),eta:document.getElementById("eta"),etan:document.getElementById("etan"),prog:document.getElementById("prog"),progn:document.getElementById("progn"),
+     wrap:document.getElementById("rwrap"),stp:el.querySelectorAll(".stp"),segs:el.querySelectorAll(".seg2 b")};
+  R.free=false;
+  ["wheel","touchstart","pointerdown"].forEach(function(ev){R.wrap.addEventListener(ev,function(){R.free=true},{passive:true})});
+  var gb=document.getElementById("gotrain");
+  if(gb)gb.onclick=function(){R.free=false;var mx=parseFloat(R.mk.style.left)||0;R.wrap.scrollTo({left:Math.max(0,mx-R.wrap.clientWidth/2),behavior:"smooth"})};
+  document.getElementById("mystop").onchange=function(e){stopSel[t.key]=+e.target.value;if(!t.timed)R.eta.textContent=B(Math.round(P.stops[+e.target.value].km))+" কিমি";updateDetail()};
+  bindDelay(t);
+  updateDetail();
+}
+function delayHtml(t){
+  return'<div class="delay"><div><small>দেরি হিসাব</small><strong id="dv">'+dvText(t)+'</strong></div><div class="dctl" id="dctl"><button data-d="-10">−১০</button><button data-d="-5">−৫</button><button data-d="5">+৫</button><button data-d="10">+১০</button><button data-d="30">+৩০</button><button data-d="0">সময়মতো</button></div><em>মিনিট হিসাবে দেরি দিন। সব সময় ও অবস্থান তার সাথে সরবে।</em></div>';
+}
+function dvText(t){return t.dl?B(t.dl)+" মিনিট দেরিতে":"সময়মতো"}
+function bindDelay(t){
+  var box=document.getElementById("dctl");if(!box)return;
+  box.onclick=function(e){
+    var b=e.target.closest("button");if(!b)return;var d=+b.getAttribute("data-d");
+    t.dl=d===0?0:Math.max(0,Math.min(720,(t.dl||0)+d));
+    try{var sv=JSON.parse(localStorage.getItem("tk-dl")||"{}");if(t.dl)sv[t.no+"|"+t.name]=t.dl;else delete sv[t.no+"|"+t.name];localStorage.setItem("tk-dl",JSON.stringify(sv))}catch(x){}
+    document.getElementById("dv").textContent=dvText(t);
+    var P=t.path;Array.prototype.forEach.call(document.querySelectorAll("#detail .stp time"),function(el,j){el.textContent=fmt(tmAt(t,P.stops[j].km),true)});
+    updateDetail();renderList();
+  };
+}
+function updateDetail(){
+  var t=cur;if(!t||!t.timed||!R)return;
+  var c=ctx(),s=status(t,c.min,c.wd),P=t.path,n=P.stops.length,km=0,fr=0,k=s.k;
+  if(k==="run"){km=Math.max(0,Math.min(P.tot,s.f*P.tot))}else if(k==="done"){km=P.tot}
+  var abs=c.min+(k==="run"?s.shift:0);
+  var i=segAt(P,km),a=P.stops[i],b=P.stops[i+1],span=b.km-a.km;fr=span>0?Math.max(0,Math.min(1,(km-a.km)/span)):0;
+  var near=null;if(k==="run"){if(km-a.km<0.8)near=a;else if(b.km-km<0.8)near=b}
+  var txt;
+  if(k==="run")txt='<span class="st-badge run">চলছে</span>'+(near?'<b>'+esc(sn(near.name))+' স্টেশনে আছে</b>।':'<b>'+esc(sn(a.name))+' ও '+esc(sn(b.name))+'-এর মাঝখানে</b>, '+esc(sn(b.name))+' স্টেশন থেকে প্রায় '+B(Math.round(b.km-km))+' কিমি দূরে।');
+  else if(k==="wait")txt='<span class="st-badge wait">ছাড়েনি</span><b>'+esc(sn(t.from))+' থেকে '+dur(s.in)+' পরে ছাড়বে</b>, ছাড়ার সময় '+fmt(t.d+(t.dl||0))+'।';
+  else if(k==="off")txt='<span class="st-badge off">আজ বন্ধ</span><b>'+DAYS[c.wd]+' এই ট্রেন চলে না।</b>';
+  else txt='<span class="st-badge done">পৌঁছেছে</span><b>'+esc(sn(t.to))+' স্টেশনে পৌঁছে গেছে</b>, সময় '+fmt(t.a+(t.dl||0))+'।';
+  R.now.innerHTML=txt;
+  R.ls.textContent=(k==="run"||k==="done")?"আগের স্টেশন":"যাত্রা শুরু";
+  R.ln.textContent=sn(a.name);
+  R.lt.textContent=(k==="run")?fmt(tmAt(t,a.km),true)+" · "+B(Math.max(0,Math.round(km-a.km)))+" কিমি পেছনে":(k==="done"?"পার হয়েছে "+fmt(tmAt(t,a.km),true):"ছাড়ার সময় "+fmt(t.d+(t.dl||0),true));
+  R.rs.textContent=k==="done"?"শেষ স্টেশন":(k==="run"?"পরের স্টেশন":"প্রথম স্টেশন");
+  R.rn.textContent=sn(b.name);
+  R.rt.textContent=k==="run"?fmt(tmAt(t,b.km),true)+" · "+durS(tmAt(t,b.km)-abs)+" পরে · "+B(Math.max(0,Math.round(b.km-km)))+" কিমি":(k==="done"?"পৌঁছেছে "+fmt(tmAt(t,b.km),true):"নির্ধারিত "+fmt(tmAt(t,b.km),true));
+  R.tw.style.left=(20+60*fr)+"%";
+  var speed=P.tot/t.dur*60;
+  R.rail.classList.toggle("moving",k==="run"&&!(km-a.km<0.5||b.km-km<0.5));
+  R.rail.classList.toggle("off",k==="off");
+  R.rail.style.setProperty("--rd",Math.max(.18,54/speed).toFixed(2)+"s");
+  var my=+document.getElementById("mystop").value,ms=P.stops[my],mt=tmAt(t,ms.km);
+  if(k==="run"){
+    R.eta.textContent=fmt(mt,true);
+    R.etan.textContent=km>ms.km+0.5?"পার হয়ে গেছে":"প্রায় "+dur(mt-abs)+" পরে";
+  }else if(k==="wait"){R.eta.textContent=fmt(mt,true);R.etan.textContent="প্রায় "+dur(mt-c.min)+" পরে"}
+  else if(k==="done"){R.eta.textContent=fmt(mt,true);R.etan.textContent="পার হয়ে গেছে"}
+  else{R.eta.textContent="—";R.etan.textContent="আজ চলছে না"}
+  R.prog.textContent=B(Math.round(km/P.tot*100))+"%";
+  R.progn.textContent=B(Math.round(P.tot))+" কিমির মধ্যে "+B(Math.round(km))+" কিমি";
+  var started=(k==="run"||k==="done");
+  for(var j=0;j<n;j++){R.stp[j].classList.toggle("passed",started&&P.stops[j].km<=km+0.3)}
+  for(var q=0;q<n-1;q++){var sp=P.stops[q+1].km-P.stops[q].km,w=started?Math.max(0,Math.min(1,(km-P.stops[q].km)/sp)):0;R.segs[q].style.width=(w*100)+"%"}
+  var x=50+100*(i+fr);
+  R.mk.style.left=x+"px";R.mk.style.opacity=k==="off"?".4":"1";
+  var sl=R.wrap.scrollLeft,cw=R.wrap.clientWidth;
+  if(!R.free&&(x<sl+60||x>sl+cw-60))R.wrap.scrollLeft=Math.max(0,x-cw/2);
+}
+
+/* ---------- Clock and wiring ---------- */
+function paintClock(){
+  var d=dhaka(),m=mode==="live"?d.min:tmin;
+  document.getElementById("clock").textContent=fmt(m,true);
+  document.getElementById("date").textContent=(mode==="live"?d.label:DAYS[day])+" · "+(mode==="live"?"ঢাকার সময়":"বাছাই করা সময়");
+  var sc=document.getElementById("scrub");
+  document.getElementById("scrubT").textContent=fmt(m,true);
+  sc.value=Math.floor(m);document.getElementById("day").value=mode==="live"?d.wd:day;
+}
+function refresh(withList){paintClock();updateDetail();if(withList)renderList()}
+function selectTrain(k){sel=k;buildDetail(BYKEY[k]);renderList()}
+function setMode(m){
+  if(m==="set"&&mode==="live"){var d=dhaka();tmin=Math.floor(d.min);day=d.wd}
+  mode=m;document.getElementById("mLive").setAttribute("aria-pressed",m==="live");document.getElementById("mSet").setAttribute("aria-pressed",m==="set");
+  if(m==="live"&&playing)togglePlay();
+  refresh(true);
+}
+function togglePlay(){
+  playing=!playing;var b=document.getElementById("play");b.textContent=playing?"থামান":"চালান";b.setAttribute("aria-pressed",playing);
+  if(playing&&mode==="live")setMode("set");
+}
+document.getElementById("day").innerHTML=DAYS.map(function(d,i){return'<option value="'+i+'">'+d+'</option>'}).join("");
+document.getElementById("day").onchange=function(e){if(mode==="live")setMode("set");day=+e.target.value;refresh(true)};
+document.getElementById("scrub").oninput=function(e){if(mode==="live")setMode("set");tmin=+e.target.value;refresh(true)};
+document.getElementById("mLive").onclick=function(){setMode("live")};
+document.getElementById("mSet").onclick=function(){setMode("set")};
+document.getElementById("play").onclick=togglePlay;
+
+var stOpts='<option value="">যেকোনো স্টেশন</option>'+STN.map(function(s){return'<option value="'+esc(s)+'">'+esc(sn(s))+'</option>'}).join("");
+document.getElementById("from").innerHTML=stOpts;document.getElementById("to").innerHTML=stOpts;
+document.getElementById("from").onchange=function(e){fromS=e.target.value;renderList()};
+document.getElementById("to").onchange=function(e){toS=e.target.value;renderList()};
+document.getElementById("swap").onclick=function(){var a=fromS;fromS=toS;toS=a;document.getElementById("from").value=fromS;document.getElementById("to").value=toS;renderList()};
+var POP=[["Dhaka","Chattogram"],["Dhaka","Cox's Bazar"],["Chattogram","Cox's Bazar"],["Dhaka","Sylhet"],["Dhaka","Rajshahi"],["Dhaka","Khulna"],["Dhaka","Rangpur"],["Dhaka","Mymensingh"],["Dhaka","Jamalpur"],["Dhaka","Dinajpur"]];
+document.getElementById("pop").innerHTML=POP.map(function(p){return'<button data-f="'+esc(p[0])+'" data-t="'+esc(p[1])+'" aria-pressed="false">'+esc(sn(p[0]))+' – '+esc(sn(p[1]))+'</button>'}).join("");
+document.getElementById("pop").onclick=function(e){var b=e.target.closest("button");if(!b)return;var f=b.getAttribute("data-f"),t=b.getAttribute("data-t");
+  if(fromS===f&&toS===t){fromS="";toS=""}else{fromS=f;toS=t}
+  document.getElementById("from").value=fromS;document.getElementById("to").value=toS;renderList()};
+document.getElementById("q").oninput=function(e){qs=e.target.value;renderList()};
+document.getElementById("showSusp").onchange=function(e){showSusp=e.target.checked;renderList()};
+var types=["সব","আন্তঃনগর","মেইল ও কমিউটার","লোকাল","আন্তর্জাতিক"];
+document.getElementById("chips").innerHTML=types.map(function(g){return'<button data-g="'+g+'" aria-pressed="'+(g===filt)+'">'+g+'</button>'}).join("");
+document.getElementById("chips").onclick=function(e){var g=e.target.getAttribute("data-g");if(!g)return;filt=g;
+  Array.prototype.forEach.call(this.children,function(b){b.setAttribute("aria-pressed",b.getAttribute("data-g")===g)});renderList()};
+document.getElementById("trains").onclick=function(e){var b=e.target.closest(".train");if(!b)return;selectTrain(b.getAttribute("data-k"));
+  if(window.innerWidth<=860)document.getElementById("detail").scrollIntoView({behavior:"smooth",block:"start"})};
+document.getElementById("srcnote").textContent="মোট "+B(T.length-NSUSP)+"টি চালু ট্রেনের সময়সূচি আছে, এছাড়া রেলওয়ের তালিকায় বন্ধ দেখানো "+B(NSUSP)+"টি ট্রেন আলাদা করে রাখা হয়েছে। সময়সূচি বাংলাদেশ রেলওয়ের পূর্বাঞ্চল ও পশ্চিমাঞ্চলের প্রকাশিত তালিকা থেকে নেওয়া। দূরত্ব আনুমানিক। যাত্রার আগে বাংলাদেশ রেলওয়ে বা রেল সেবা অ্যাপে সময় মিলিয়ে নিন।";
+
+(function(){
+  var d=dhaka(),first=null;
+  T.forEach(function(t){if(!first&&t.timed&&t.type==="আন্তঃনগর"&&status(t,d.min,d.wd).k==="run")first=t.key});
+  if(!first)T.forEach(function(t){if(!first&&t.no==="704")first=t.key});
+  sel=first;
+})();
+paintClock();buildDetail(BYKEY[sel]);renderList();
+var tick=0;
+setInterval(function(){
+  tick++;
+  if(playing&&mode==="set"){
+    tmin+=0.6;if(tmin>=1440){tmin-=1440;day=(day+1)%7}
+    refresh(tick%5===0);
+  }else if(mode==="live"&&tick%5===0){refresh(tick%25===0)}
+},200);
+})();
+</script>
+
+</body></html>
