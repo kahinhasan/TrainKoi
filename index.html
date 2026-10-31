@@ -6,6 +6,7 @@
 <meta name="description" content="বাংলাদেশ রেলওয়ের সময়সূচি থেকে হিসাব করে যেকোনো সময়ে ট্রেন কোথায় থাকার কথা তা দেখুন।">
 <title>ট্রেন কই?</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@500;700&family=Hind+Siliguri:wght@400;500;600&display=swap">
 <style>
 /* Layout: finder and train list on the left; on the right the selected train on a side-view rail strip (earlier stop, train, next stop) above a full-route line. A time bar on top drives everything. */
@@ -163,6 +164,21 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,7vw,52px);lin
 @keyframes flap{from{transform:scaleY(1)}to{transform:scaleY(.35)}}
 @media(prefers-reduced-motion:reduce){.lay,.wv,.cloud,.bird,.bird svg{animation:none}}
 .gob{align-self:flex-start;padding:2px 12px;font-size:14px}
+.mapbox{border:1px solid var(--rule);background:var(--panel)}
+.mtool{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--rule)}
+.mtool .seg button{padding:3px 12px}
+.mtool .tg{border:1px solid var(--ink);background:none;padding:3px 12px;cursor:pointer}
+.mtool .tg[aria-pressed="true"]{background:var(--rail);border-color:var(--rail);color:var(--panel)}
+#mapcv{height:400px;width:100%;background:var(--sky)}
+@media(max-width:560px){#mapcv{height:330px}}
+.mnote{margin:0;padding:6px 10px;font-size:13px;color:var(--muted)}
+.ms{position:relative;width:10px;height:10px}
+.ms i{display:block;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--rail)}
+.ms span{position:absolute;left:12px;top:-4px;white-space:nowrap;font-size:12px;font-weight:500;color:#12241c;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;display:none}
+.labs .ms span{display:block}
+.mtr{width:34px;height:34px;border-radius:50%;background:var(--rail);display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(11,90,60,.55)}100%{box-shadow:0 0 0 16px rgba(11,90,60,0)}}
+@media(prefers-reduced-motion:reduce){.mtr{animation:none}}
 .rwrap{overflow-x:auto;border:1px solid var(--rule);background:var(--bg)}
 .rt2{position:relative;height:122px}
 .seg2{position:absolute;top:34px;height:6px;background:var(--rule)}
@@ -245,6 +261,7 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--rule);paddin
   </footer>
 </div>
 
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
 (function(){
 /* Rail network edges: [station, station, approximate km]. */
@@ -414,6 +431,7 @@ function buildDetail(t){
     h+='<div class="empty">রেলওয়ের সময়সূচিতে এই ট্রেনটি এখন বন্ধ দেখানো আছে, তাই এর অবস্থান হিসাব করা যাচ্ছে না। নিচে শুধু রেলপথ দেখানো হলো।</div>';
     h+='<div class="facts"><div><small>আপনার স্টেশন</small><select id="mystop" aria-label="আপনার স্টেশন">'+opts+'</select></div><div><small>'+esc(sn(t.from))+' থেকে দূরত্ব</small><strong id="eta">'+B(Math.round(P.stops[my].km))+' কিমি</strong></div></div>';
   }
+  h+='<div id="mapslot"></div>';
   if(t.timed)h+='<button class="btn gob" id="gotrain">ট্রেনের অবস্থানে যান</button>';
   h+='<div class="rwrap" id="rwrap"><div class="rt2" id="rt2" style="width:'+(n*100)+'px">';
   for(var i=0;i<n-1;i++)h+='<div class="seg2" style="left:'+(50+100*i)+'px;width:100px"><b></b></div>';
@@ -428,7 +446,10 @@ function buildDetail(t){
     h+=Array.isArray(o)?'<p class="note">শুধু এই বারগুলোতে চলে: '+o.map(function(d){return DAYS[d]}).join(", ")+'।</p>':o===-1?'<p class="note">প্রতিদিন চলে।</p>':'<p class="note">সাপ্তাহিক বন্ধ: '+DAYS[o]+'।</p>';
     h+='<p class="note">দুই প্রান্তের মাঝের স্টেশনের সময় দূরত্ব ধরে হিসাব করা, রেলওয়ের প্রকাশিত সময় নয়।</p>';
   }
-  var el=document.getElementById("detail");el.innerHTML=h;
+  var el=document.getElementById("detail");if(mbox&&mbox.parentNode)mbox.parentNode.removeChild(mbox);el.innerHTML=h;
+  if(!mbox)buildMapBox();
+  document.getElementById("mapslot").appendChild(mbox);
+  if(!MAP)initMap();else MAP.resize();
   R={now:document.getElementById("now"),ls:document.getElementById("ls"),ln:document.getElementById("ln"),lt:document.getElementById("lt"),rs:document.getElementById("rs"),rn:document.getElementById("rn"),rt:document.getElementById("rt"),
      rail:document.getElementById("rail"),tw:document.getElementById("tw"),mk:document.getElementById("mk"),eta:document.getElementById("eta"),etan:document.getElementById("etan"),prog:document.getElementById("prog"),progn:document.getElementById("progn"),
      wrap:document.getElementById("rwrap"),stp:el.querySelectorAll(".stp"),segs:el.querySelectorAll(".seg2 b")};
@@ -439,6 +460,7 @@ function buildDetail(t){
   document.getElementById("mystop").onchange=function(e){stopSel[t.key]=+e.target.value;if(!t.timed)R.eta.textContent=B(Math.round(P.stops[+e.target.value].km))+" কিমি";updateDetail()};
   bindDelay(t);
   updateDetail();
+  if(MREADY)drawMap();
 }
 function delayHtml(t){
   return'<div class="delay"><div><small>দেরি হিসাব</small><strong id="dv">'+dvText(t)+'</strong></div><div class="dctl" id="dctl"><button data-d="-10">−১০</button><button data-d="-5">−৫</button><button data-d="5">+৫</button><button data-d="10">+১০</button><button data-d="30">+৩০</button><button data-d="0">সময়মতো</button></div><em>মিনিট হিসাবে দেরি দিন। সব সময় ও অবস্থান তার সাথে সরবে।</em></div>';
@@ -495,7 +517,96 @@ function updateDetail(){
   R.mk.style.left=x+"px";R.mk.style.opacity=k==="off"?".4":"1";
   var sl=R.wrap.scrollLeft,cw=R.wrap.clientWidth;
   if(!R.free&&(x<sl+60||x>sl+cw-60))R.wrap.scrollLeft=Math.max(0,x-cw/2);
+  updateMap(t,k,i,fr);
 }
+
+/* ---------- Map (MapLibre GL + OpenFreeMap, free) ---------- */
+var CO={"Dhaka":[90.4264,23.7313],"Dhaka Airport":[90.4075,23.8513],"Dhaka Cantonment":[90.4017,23.8226],"Tongi":[90.404,23.892],"Joydebpur":[90.42,24.002],"Narayanganj":[90.5,23.62],"Narsingdi":[90.715,23.922],"Bhairab Bazar":[90.98,24.05],"Brahmanbaria":[91.105,23.957],"Akhaura":[91.212,23.875],"Cumilla":[91.186,23.465],"Laksam":[91.128,23.252],"Feni":[91.398,23.015],"Chattogram":[91.813,22.33],"Dohazari":[92.097,22.17],"Chakaria":[92.08,21.765],"Eidgaon":[92.003,21.564],"Ramu":[92.1,21.43],"Cox's Bazar":[91.98,21.435],"Chaumuhani":[91.098,22.82],"Noakhali":[91.1,22.869],"Hajiganj":[90.85,23.25],"Chandpur":[90.65,23.23],"Shaistaganj":[91.43,24.3],"Srimangal":[91.73,24.305],"Kulaura":[92.05,24.53],"Sylhet":[91.87,24.89],"Mymensingh":[90.4,24.75],"Gafargaon":[90.54,24.48],"Kishoreganj":[90.78,24.43],"Netrokona":[90.73,24.88],"Mohanganj":[90.98,24.87],"Jaria Jhanjail":[90.6,25.01],"Jamalpur":[89.94,24.93],"Dewanganj Bazar":[89.85,25.14],"Tarakandi":[89.8,25.2],"Bhuapur":[89.89,24.45],"Ibrahimabad":[89.82,24.33],"Tangail":[89.92,24.25],"Jamuna Bridge East":[89.78,24.4],"Jamuna Bridge West":[89.73,24.43],"Sirajganj Bazar":[89.7,24.45],"Ullapara":[89.51,24.31],"Bonarpara":[89.48,24.83],"Bogura":[89.37,24.85],"Santahar":[89.03,24.76],"Gaibandha":[89.54,25.33],"Parbatipur":[88.92,25.66],"Rangpur":[89.24,25.75],"Romnabazar":[89.25,25.73],"Kaunia":[89.44,25.75],"Lalmonirhat":[89.44,25.92],"Burimari":[89.76,26.35],"Kurigram":[89.65,25.8],"Panchagarh":[88.55,26.34],"Birol":[88.63,25.5],"Haldibari":[88.85,26.1],"Chilahati":[88.8,26.35],"Dinajpur":[88.64,25.62],"Thakurgaon Road":[88.4,26.0],"Joypurhat":[89.02,25.1],"Ishwardi":[89.07,24.13],"Natore":[88.99,24.41],"Abdulpur":[88.95,24.33],"Rajshahi":[88.59,24.37],"Rohanpur":[88.35,24.6],"Chapainawabganj":[88.27,24.59],"Dhalarchar":[89.2,23.9],"Pabna":[89.23,24.0],"Poradah":[88.97,23.88],"Jashore":[89.21,23.17],"Khulna":[89.56,22.82],"Mongla":[89.6,22.49],"Benapole":[88.88,23.04],"Darshana":[88.8,23.5],"Mawa":[90.26,23.44],"Bhanga":[89.99,23.39],"Rajbari":[89.65,23.76],"Gopalganj":[89.82,23.0],"Gobra":[89.8,22.95],"Goalundo Ghat":[89.78,23.75],"Kamarkhali":[89.65,23.48],"Bhatiapara Ghat":[89.83,23.21],"Kolkata":[88.37,22.57],"New Jalpaiguri":[88.44,26.68]};
+var EG={},MAP=null,MREADY=false,follow=true,is3d=false,mTrain=null,mStops=[],mLastI=-2,mbox=null;
+function hav(a,b){var r=Math.PI/180,dx=(b[0]-a[0])*r*Math.cos((a[1]+b[1])*r/2),dy=(b[1]-a[1])*r;return 6371*Math.sqrt(dx*dx+dy*dy)}
+function segLine(a,b){var f=EG[a+"|"+b];if(f)return f;var r=EG[b+"|"+a];if(r)return r.slice().reverse();return[CO[a],CO[b]]}
+function geoOf(t){
+  if(t.geo)return t.geo;var segs=[],all=[],S=t.path.stops;
+  for(var i=0;i<S.length-1;i++){var l=segLine(S[i].name,S[i+1].name);segs.push(l);all=all.concat(i?l.slice(1):l)}
+  return t.geo={segs:segs,all:all};
+}
+function ptAlong(line,fr){
+  var L=[0];for(var i=1;i<line.length;i++)L.push(L[i-1]+hav(line[i-1],line[i]));
+  var tot=L[L.length-1],tg=tot*fr,j=1;while(j<line.length-1&&L[j]<tg)j++;
+  var seg=L[j]-L[j-1],u=seg>0?Math.max(0,Math.min(1,(tg-L[j-1])/seg)):0,a=line[j-1],b=line[j];
+  return{p:[a[0]+(b[0]-a[0])*u,a[1]+(b[1]-a[1])*u],n:j};
+}
+function lineF(c){return{type:"Feature",geometry:{type:"LineString",coordinates:c.length>1?c:[c[0]||[0,0],c[0]||[0,0]]}}}
+function mapNote(msg){var n=document.getElementById("mnote");if(n)n.textContent=msg}
+function buildMapBox(){
+  mbox=document.createElement("div");mbox.className="mapbox";mbox.id="mapbox";
+  mbox.innerHTML='<div class="mtool"><div class="seg" role="group" aria-label="মানচিত্রের ধরন"><button id="m2d" aria-pressed="true">২ডি</button><button id="m3d" aria-pressed="false">৩ডি</button></div><button class="tg" id="mfol" aria-pressed="true">ট্রেন অনুসরণ</button><button class="tg" id="mfit" aria-pressed="false">পুরো রুট দেখুন</button></div><div id="mapcv"></div><p class="mnote" id="mnote"></p>';
+  mbox.querySelector("#m2d").onclick=function(){set3d(false)};
+  mbox.querySelector("#m3d").onclick=function(){set3d(true)};
+  mbox.querySelector("#mfol").onclick=function(){setFollow(!follow)};
+  mbox.querySelector("#mfit").onclick=function(){setFollow(false);fitRoute()};
+}
+function set3d(v){
+  is3d=v;mbox.querySelector("#m2d").setAttribute("aria-pressed",!v);mbox.querySelector("#m3d").setAttribute("aria-pressed",v);
+  if(!MAP)return;MAP.easeTo({pitch:v?62:0,bearing:v?-20:0,zoom:v?Math.max(MAP.getZoom(),12.5):MAP.getZoom(),duration:900});
+}
+function setFollow(v){
+  follow=v;mbox.querySelector("#mfol").setAttribute("aria-pressed",v);
+  if(v&&cur){var c=ctx(),s=status(cur,c.min,c.wd);if(s.k==="run")updateDetail()}
+}
+function fitRoute(){
+  if(!MAP||!cur)return;var a=geoOf(cur).all,b=new maplibregl.LngLatBounds(a[0],a[0]);a.forEach(function(p){b.extend(p)});
+  MAP.fitBounds(b,{padding:50,duration:700,pitch:is3d?55:0,bearing:0,maxZoom:11});
+}
+function initMap(){
+  if(MAP)return;
+  if(!window.maplibregl){mapNote("মানচিত্র লোড করা যায়নি। ইন্টারনেট সংযোগ দেখুন।");return}
+  try{
+    MAP=new maplibregl.Map({container:"mapcv",style:"https://tiles.openfreemap.org/styles/liberty",center:[90.4,23.8],zoom:6.3,attributionControl:{compact:true}});
+  }catch(e){mapNote("এই ডিভাইসে মানচিত্র চালু করা গেল না।");MAP=null;return}
+  MAP.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
+  MAP.on("error",function(e){if(!MREADY)mapNote("মানচিত্রের ছবি আনা যায়নি। ইন্টারনেট সংযোগ দেখুন।")});
+  MAP.on("dragstart",function(){if(follow)setFollow(false)});
+  MAP.on("zoom",function(){mbox.classList.toggle("labs",MAP.getZoom()>=8.3)});
+  MAP.on("load",function(){
+    var e={type:"FeatureCollection",features:[]};
+    ["rt","dn","dp"].forEach(function(id){MAP.addSource(id,{type:"geojson",data:e})});
+    MAP.addLayer({id:"rt-c",type:"line",source:"rt",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#ffffff","line-width":8,"line-opacity":.9}});
+    MAP.addLayer({id:"rt",type:"line",source:"rt",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#5b6b62","line-width":4}});
+    ["dn","dp"].forEach(function(id){MAP.addLayer({id:id,type:"line",source:id,layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#0b8a57","line-width":5}})});
+    var el=document.createElement("div");el.className="mtr";el.textContent="🚆";
+    mTrain=new maplibregl.Marker({element:el}).setLngLat([90.4,23.8]).addTo(MAP);
+    MREADY=true;drawMap();
+  });
+}
+function drawMap(){
+  if(!MREADY||!cur)return;
+  var t=cur,g=geoOf(t);
+  if(!t.timed){mTrain.getElement().style.display="none";MAP.getSource("dn").setData(lineF([]));MAP.getSource("dp").setData(lineF([]))}
+  MAP.getSource("rt").setData(lineF(g.all));mLastI=-2;
+  mStops.forEach(function(m){m.remove()});mStops=[];
+  t.path.stops.forEach(function(s){
+    var el=document.createElement("div");el.className="ms";el.innerHTML="<i></i><span></span>";el.lastChild.textContent=sn(s.name);
+    mStops.push(new maplibregl.Marker({element:el}).setLngLat(CO[s.name]).addTo(MAP));
+  });
+  var c=ctx(),st=status(t,c.min,c.wd);
+  mapNote(Object.keys(EG).length?"":"রেখাটি স্টেশনগুলোর আনুমানিক সংযোগ, আসল রেললাইনের বাঁক নয়।");
+  if(st.k==="run"){follow=true;mbox.querySelector("#mfol").setAttribute("aria-pressed","true")}
+  else{follow=false;mbox.querySelector("#mfol").setAttribute("aria-pressed","false");fitRoute()}
+  updateDetail();
+}
+function updateMap(t,k,i,fr){
+  if(!MREADY||cur!==t)return;
+  var el=mTrain.getElement();
+  if(k==="off"||k==="susp"){el.style.display="none";MAP.getSource("dn").setData(lineF([]));MAP.getSource("dp").setData(lineF([]));mLastI=-2;return}
+  el.style.display="";
+  var g=geoOf(t),r=ptAlong(g.segs[i],fr);
+  if(i!==mLastI){var d=[];for(var j=0;j<i;j++)d=d.concat(d.length?g.segs[j].slice(1):g.segs[j]);MAP.getSource("dn").setData(lineF(d.length?d:[g.segs[0][0]]));mLastI=i}
+  MAP.getSource("dp").setData(lineF(g.segs[i].slice(0,r.n).concat([r.p])));
+  mTrain.setLngLat(r.p);
+  if(follow&&k==="run")MAP.easeTo({center:r.p,zoom:MAP.getZoom()<9?(is3d?13:10):MAP.getZoom(),duration:300,easing:function(x){return x}});
+}
+try{fetch("edges.json").then(function(r){return r.ok?r.json():null}).then(function(j){if(j&&typeof j==="object"){if(j._st){for(var n in j._st)CO[n]=j._st[n];delete j._st}EG=j;T.forEach(function(t){delete t.geo});if(MREADY)drawMap()}}).catch(function(){})}catch(e){}
 
 /* ---------- Clock and wiring ---------- */
 function paintClock(){
