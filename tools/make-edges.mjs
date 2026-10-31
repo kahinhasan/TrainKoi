@@ -7,17 +7,24 @@ import fs from "node:fs";
 const net = JSON.parse(fs.readFileSync(new URL("./net.json", import.meta.url), "utf8"));
 const OUT = new URL("../edges.json", import.meta.url);
 const QUERY = '[out:json][timeout:300];way["railway"="rail"][!"service"](20.4,87.8,26.8,92.8);out geom;';
-const SERVERS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
+const SERVERS = ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
+const HEADERS = { "content-type": "application/x-www-form-urlencoded", "user-agent": "train-koi-rail-builder/1.0 (https://github.com/kahinhasan/TrainKoi)", "accept": "application/json" };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function load() {
   if (process.argv[2]) return JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-  for (const s of SERVERS) {
-    try {
-      console.log("Downloading from", s);
-      const r = await fetch(s, { method: "POST", body: "data=" + encodeURIComponent(QUERY), headers: { "content-type": "application/x-www-form-urlencoded" } });
-      if (r.ok) return await r.json();
-      console.log(" ->", r.status);
-    } catch (e) { console.log(" ->", e.message); }
+  for (let round = 1; round <= 6; round++) {
+    for (const s of SERVERS) {
+      try {
+        console.log(`Round ${round}: downloading from ${s}`);
+        const r = await fetch(s, { method: "POST", body: "data=" + encodeURIComponent(QUERY), headers: HEADERS });
+        if (r.ok) return await r.json();
+        console.log(" ->", r.status);
+      } catch (e) { console.log(" ->", e.message); }
+      await sleep(5000);
+    }
+    console.log("All servers busy. Waiting 60 seconds, then trying again...");
+    await sleep(60000);
   }
   throw new Error("All Overpass servers failed. Try again later, or save the result in a browser and pass the file name.");
 }
